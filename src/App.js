@@ -646,7 +646,7 @@ const AboutScreen = () => (
         ["Purpose", "Updater is a one-way information broadcasting app designed for educators to share lectures and notices with students in a clean, reliable feed."],
         ["Tech Stack", "Built with React (web prototype). Production version targets React Native for Android & iOS with Firebase for auth, Firestore for data, and Firebase Storage for attachments."],
         ["Role System", "A single Owner can publish content. Students register and receive updates in real-time. Owner access is protected by restricted credentials."],
-        ["Developer", "Yash Bhagat · yashbhagat324@gmail.com"],
+        ["Developer", "Yash Bhagat · yashbhagat579@gmail.com"],
       ].map(([title, text]) => (
         <div key={title} style={{ marginBottom: 16, padding: "14px", background: C.surface, borderRadius: 12, border: `1px solid ${C.border}` }}>
           <div style={{ fontSize: 12, color: C.accent, fontWeight: 700, letterSpacing: ".8px", textTransform: "uppercase", marginBottom: 6 }}>{title}</div>
