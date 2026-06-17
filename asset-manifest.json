@@ -1,0 +1,10 @@
+{
+  "files": {
+    "main.js": "/updater-app/static/js/main.eca0e304.js",
+    "index.html": "/updater-app/index.html",
+    "main.eca0e304.js.map": "/updater-app/static/js/main.eca0e304.js.map"
+  },
+  "entrypoints": [
+    "static/js/main.eca0e304.js"
+  ]
+}
