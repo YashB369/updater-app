@@ -4,16 +4,16 @@ import { useState, useEffect, useRef } from "react";
 // Deep academic indigo + warm amber accent + clean off-white
 // Signature: animated shimmer on cards on first load
 const C = {
-  bg: "#0F1117",
-  surface: "#1A1D27",
-  card: "#20243A",
-  border: "#2A2F4A",
-  accent: "#6C8EFF",
+  bg: "#F5F7FF",
+  surface: "#FFFFFF",
+  card: "#FFFFFF",
+  border: "#E0E4F0",
+  accent: "#4C6EF5",
   accentDim: "#3D4F99",
-  amber: "#FFB84D",
+  amber: "#F59F00",
   amberDim: "#7A521A",
-  text: "#E8EAF6",
-  muted: "#7B80A0",
+  text: "#1A1D27",
+  muted: "#6B7280",
   danger: "#FF5252",
   success: "#4CAF7D",
   white: "#FFFFFF",
@@ -235,14 +235,21 @@ const AuthScreen = ({ store, onAuth, setToast }) => {
   const OWNER_PIN = "369752";
 
   const handleSubmit = () => {
-    if (!email || !password) { setToast({ msg: "Fill all fields", type: "error" }); return; }
+    if (!email) { setToast({ msg: "Fill all fields", type: "error" }); return; }
+if (mode !== "owner" && !password) { setToast({ msg: "Fill all fields", type: "error" }); return; }
+if (mode === "owner" && !pin) { setToast({ msg: "Fill all fields", type: "error" }); return; }
     setLoading(true);
     setTimeout(() => {
-      if (mode === "owner") {
-        if (email !== OWNER_EMAIL || pin !== OWNER_PIN) {
-          setToast({ msg: "Invalid owner credentials", type: "error" }); setLoading(false); return;
-        }
-        onAuth({ email, role: "owner", profile: { name: "Owner" } });
+     if (mode === "owner") {
+  const trimmedEmail = email.trim();
+  const trimmedPin = pin.trim();
+  if (trimmedEmail !== OWNER_EMAIL || trimmedPin !== OWNER_PIN) {
+    setToast({ msg: "Invalid owner credentials", type: "error" }); 
+    setLoading(false); 
+    return;
+  }
+  onAuth({ email: trimmedEmail, role: "owner", profile: { name: "Owner" } });
+
       } else if (mode === "signup") {
         if (store.users[email]) { setToast({ msg: "Email already registered", type: "error" }); setLoading(false); return; }
         if (password.length < 6) { setToast({ msg: "Password min 6 chars", type: "error" }); setLoading(false); return; }
@@ -685,7 +692,12 @@ const BottomNav = ({ page, onNavigate }) => {
 // ─── Root App ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [store, setStore] = useState(() => loadStore() || defaultStore());
-  const [session, setSession] = useState(null);
+  const [session, setSession] = useState(() => {
+  try {
+    const s = localStorage.getItem("updater_session");
+    return s ? JSON.parse(s) : null;
+  } catch { return null; }
+});
   const [page, setPage] = useState("lectures");
   const [toast, setToast] = useState(null);
   const [needsProfile, setNeedsProfile] = useState(false);
@@ -706,6 +718,7 @@ export default function App() {
       updateStore(s => { s.users[newUserData.email] = { password: newUserData.password, role: newUserData.role, profile: null }; });
     }
     setSession(sess);
+    localStorage.setItem("updater_session", JSON.stringify(sess));
     if (sess.isNew || (!sess.profile && sess.role !== "owner")) {
       setNeedsProfile(true);
     } else {
@@ -719,7 +732,11 @@ export default function App() {
     setNeedsProfile(false);
   };
 
-  const handleLogout = () => { setSession(null); setPage("lectures"); };
+  const handleLogout = () => { 
+    setSession(null); 
+    setPage("lectures"); 
+    localStorage.removeItem("updater_session");
+  };
 
   const showToast = (t) => setToast(t);
 
