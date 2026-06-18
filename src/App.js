@@ -363,16 +363,45 @@ const LectureDetail = ({ lec, isOwner, onClose, onDelete }) => {
         </div>
         <div style={{ height: 1, background: C.border, marginBottom: 24 }} />
         <div style={{ fontSize: 16, color: C.text, lineHeight: 1.9, whiteSpace: "pre-wrap", marginBottom: 32 }}>{lec.description}</div>
-        {lec.fileUrl && (
+     {(lec.files?.length > 0 || lec.fileUrl) && (
           <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 16, marginBottom: 16 }}>
-            <div style={{ fontSize: 12, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".6px", marginBottom: 12 }}>Attachment</div>
-            {isImage && (
-              <img src={lec.fileUrl} alt="attachment" style={{ width: "100%", borderRadius: 10, marginBottom: 12, objectFit: "cover" }} />
-            )}
-            <div style={{ display: "flex", gap: 10 }}>
-              {isImage && <Btn onClick={() => window.open(lec.fileUrl, "_blank")} variant="ghost" small icon="image">View Full</Btn>}
-              {!isOwner && <Btn onClick={handleDownload} variant="amber" small icon="download">Download</Btn>}
+            <div style={{ fontSize: 12, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".6px", marginBottom: 12 }}>
+              Attachments ({lec.files?.length || 1})
             </div>
+            {lec.files?.length > 0 ? (
+              lec.files.map((f, i) => {
+                const isImg = f.type?.startsWith("image/");
+                return (
+                  <div key={i} style={{ marginBottom: 12 }}>
+                    {isImg && <img src={f.url} alt={f.name} style={{ width: "100%", borderRadius: 10, marginBottom: 8, objectFit: "cover" }} />}
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <span style={{ fontSize: 13, color: C.text, flex: 1 }}>{f.name}</span>
+                      {isImg && <Btn onClick={() => window.open(f.url, "_blank")} variant="ghost" small icon="image">View</Btn>}
+                      {!isOwner && <Btn onClick={async () => {
+                        try {
+                          const res = await fetch(f.url);
+                          const blob = await res.blob();
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url; a.download = f.name;
+                          document.body.appendChild(a); a.click();
+                          document.body.removeChild(a);
+                          window.URL.revokeObjectURL(url);
+                        } catch { window.open(f.url, "_blank"); }
+                      }} variant="amber" small icon="download">Download</Btn>}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div>
+                {isImage && <img src={lec.fileUrl} alt="attachment" style={{ width: "100%", borderRadius: 10, marginBottom: 12, objectFit: "cover" }} />}
+                <div style={{ display: "flex", gap: 10 }}>
+                  {isImage && <Btn onClick={() => window.open(lec.fileUrl, "_blank")} variant="ghost" small icon="image">View Full</Btn>}
+                  {!isOwner && <Btn onClick={handleDownload} variant="amber" small icon="download">Download</Btn>}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -401,10 +430,12 @@ const LectureCard = ({ lec, isOwner, onDelete, onClick }) => {
       </div>
       <div style={{ padding: "12px 16px" }}>
         <div style={{ color: C.muted, fontSize: 13.5, lineHeight: 1.6, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{lec.description}</div>
-        {lec.fileUrl && (
+      {(lec.files?.length > 0 || lec.fileUrl) && (
           <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 6 }}>
-            <Icon name={isImage ? "image" : "pdf"} size={14} color={C.amber} />
-            <span style={{ fontSize: 12, color: C.amber, fontWeight: 600 }}>{isImage ? "Image attached" : "PDF attached"}</span>
+            <Icon name="image" size={14} color={C.amber} />
+            <span style={{ fontSize: 12, color: C.amber, fontWeight: 600 }}>
+              {lec.files?.length > 0 ? `${lec.files.length} file${lec.files.length > 1 ? "s" : ""} attached` : "1 file attached"}
+            </span>
           </div>
         )}
         <div style={{ marginTop: 8, fontSize: 12, color: C.accent, fontWeight: 600 }}>Tap to read more →</div>
@@ -434,7 +465,7 @@ const LecturesScreen = ({ session, setToast }) => {
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("");
   const [desc, setDesc] = useState("");
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]);
   const [selectedLec, setSelectedLec] = useState(null);
   const [loading, setLoading] = useState(false);
   const fileRef = useRef(null);
@@ -446,13 +477,14 @@ const LecturesScreen = ({ session, setToast }) => {
   }, []);
 
   const handleFile = (e) => {
-    const f = e.target.files[0];
-    if (!f) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      setFile({ url: ev.target.result, name: f.name, type: f.type, raw: f });
-    };
-    reader.readAsDataURL(f);
+    const newFiles = Array.from(e.target.files);
+    newFiles.forEach(f => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setFiles(prev => [...prev, { url: ev.target.result, name: f.name, type: f.type, raw: f }]);
+      };
+      reader.readAsDataURL(f);
+    });
   };
 
   const handleSend = async () => {
@@ -463,7 +495,8 @@ const LecturesScreen = ({ session, setToast }) => {
       let fileName = null;
       let fileType = null;
 
-      if (file) {
+     let uploadedFiles = [];
+      for (const file of files) {
         if (file.type.startsWith("image/")) {
           const formData = new FormData();
           formData.append("image", file.raw);
@@ -473,27 +506,23 @@ const LecturesScreen = ({ session, setToast }) => {
           });
           const data = await res.json();
           if (data.success) {
-            fileUrl = data.data.url;
-            fileName = file.name;
-            fileType = file.type;
+            uploadedFiles.push({ url: data.data.url, name: file.name, type: file.type });
           } else {
-            setToast({ msg: "Image upload failed", type: "error" });
+            setToast({ msg: `Failed to upload ${file.name}`, type: "error" });
             setLoading(false);
             return;
           }
         } else {
-          fileUrl = file.url;
-          fileName = file.name;
-          fileType = file.type;
+          uploadedFiles.push({ url: file.url, name: file.name, type: file.type });
         }
       }
-
+      
       await addDoc(collection(db, "lectures"), {
         date, title, subject, description: desc,
-        fileUrl, fileName, fileType,
+        files: uploadedFiles,
         createdAt: serverTimestamp(),
       });
-      setTitle(""); setSubject(""); setDesc(""); setFile(null);
+      setTitle(""); setSubject(""); setDesc(""); setFiles([]);
       setToast({ msg: "Lecture published!", type: "success" });
     } catch (e) { setToast({ msg: "Error: " + e.message, type: "error" }); }
     setLoading(false);
@@ -518,20 +547,26 @@ const LecturesScreen = ({ session, setToast }) => {
             <TextArea label="Description *" value={desc} onChange={setDesc} placeholder="Topics covered today…" />
             <div>
               <label style={{ color: C.muted, fontSize: 12, fontWeight: 600, letterSpacing: ".8px", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Attachment (optional)</label>
-              {file ? (
-                <div style={{ background: C.surface, borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", border: `1px solid ${C.border}` }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <Icon name={file.type.startsWith("image/") ? "image" : "pdf"} size={20} color={C.amber} />
-                    <span style={{ fontSize: 13, color: C.text }}>{file.name}</span>
-                  </div>
-                  <button onClick={() => setFile(null)} style={{ background: "none", border: "none", cursor: "pointer" }}><Icon name="close" size={18} color={C.danger} /></button>
+            {files.length > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 8 }}>
+                  {files.map((f, i) => (
+                    <div key={i} style={{ background: C.surface, borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", border: `1px solid ${C.border}` }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <Icon name={f.type.startsWith("image/") ? "image" : "pdf"} size={20} color={C.amber} />
+                        <span style={{ fontSize: 13, color: C.text }}>{f.name}</span>
+                      </div>
+                      <button onClick={() => setFiles(prev => prev.filter((_, j) => j !== i))} style={{ background: "none", border: "none", cursor: "pointer" }}>
+                        <Icon name="close" size={18} color={C.danger} />
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                <button onClick={() => fileRef.current?.click()} style={{ width: "100%", padding: "12px", background: C.surface, border: `1px dashed ${C.border}`, borderRadius: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: C.muted, fontSize: 13, fontFamily: "inherit" }}>
-                  <Icon name="upload" size={18} color={C.muted} /> Upload Image or PDF
-                </button>
               )}
-              <input ref={fileRef} type="file" accept="image/*,.pdf" style={{ display: "none" }} onChange={handleFile} />
+              <button onClick={() => fileRef.current?.click()} style={{ width: "100%", padding: "12px", background: C.surface, border: `1px dashed ${C.border}`, borderRadius: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: C.muted, fontSize: 13, fontFamily: "inherit" }}>
+                <Icon name="upload" size={18} color={C.muted} /> {files.length > 0 ? "Add More Files" : "Upload Images or PDF"}
+              </button>
+              <input ref={fileRef} type="file" accept="image/*,.pdf" multiple style={{ display: "none" }} onChange={handleFile} />
+          
             </div>
             <Btn onClick={handleSend} disabled={loading} full icon="send">{loading ? "Publishing…" : "Send Lecture"}</Btn>
           </div>
