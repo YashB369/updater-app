@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { initializeApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
-import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, setDoc, getDoc, serverTimestamp, query, orderBy } from "firebase/firestore";
+import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, setDoc, getDoc, serverTimestamp, query as queryFirestore, orderBy } from "firebase/firestore";
 
 // ─── Firebase Setup ───────────────────────────────────────────────────────────
 const firebaseConfig = {
@@ -57,6 +57,7 @@ const Icon = ({ name, size = 20, color = C.text }) => {
     plus: "M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z",
     pdf: "M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .8-.7 1.5-1.5 1.5H9v2H7.5V7H10c.8 0 1.5.7 1.5 1.5v1zm5 2c0 .8-.7 1.5-1.5 1.5h-2.5V7H15c.8 0 1.5.7 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z",
     image: "M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z",
+    search: "M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z",
   };
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill={color} style={{ flexShrink: 0 }}>
@@ -319,11 +320,9 @@ const ProfileSetup = ({ session, onComplete, setToast }) => {
     </div>
   );
 };
-
-// ─── Lecture Card ─────────────────────────────────────────────────────────────
-const LectureCard = ({ lec, isOwner, onDelete }) => {
-  const [expanded, setExpanded] = useState(false);
+const LectureDetail = ({ lec, isOwner, onClose, onDelete }) => {
   const isImage = lec.fileType?.startsWith("image/");
+
   const handleDownload = async () => {
     if (!lec.fileUrl) return;
     try {
@@ -341,42 +340,74 @@ const LectureCard = ({ lec, isOwner, onDelete }) => {
       window.open(lec.fileUrl, "_blank");
     }
   };
+
   return (
-    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "hidden", marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,.06)" }}>
-      <div style={{ background: `linear-gradient(90deg, ${C.accentDim}22, transparent)`, padding: "14px 16px", borderBottom: `1px solid ${C.border}40`, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div>
-          <div style={{ fontSize: 11, color: C.accent, fontWeight: 700, letterSpacing: ".8px", textTransform: "uppercase", marginBottom: 4 }}>{lec.subject}</div>
-          <div style={{ fontSize: 17, fontWeight: 700, color: C.text }}>{lec.title}</div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ fontSize: 12, color: C.muted, whiteSpace: "nowrap" }}>{lec.date ? new Date(lec.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : fmtDate(lec.createdAt)}</div>
-          {isOwner && <button onClick={() => onDelete(lec.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}><Icon name="close" size={16} color={C.danger} /></button>}
-        </div>
-      </div>
-      <div style={{ padding: "12px 16px" }}>
-        <div style={{ color: C.muted, fontSize: 13.5, lineHeight: 1.6 }}>
-          {expanded || lec.description.length < 120 ? lec.description : lec.description.slice(0, 120) + "…"}
-        </div>
-        {lec.description.length >= 120 && (
-          <button onClick={() => setExpanded(e => !e)} style={{ background: "none", border: "none", color: C.accent, fontSize: 12, cursor: "pointer", padding: "4px 0", fontFamily: "inherit" }}>
-            {expanded ? "Show less" : "Read more"}
+    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: C.bg, zIndex: 500, overflowY: "auto", maxWidth: 768, margin: "0 auto" }}>
+      <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "14px 20px", display: "flex", alignItems: "center", gap: 12, position: "sticky", top: 0, zIndex: 10 }}>
+        <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, color: C.accent, fontSize: 14, fontWeight: 600, fontFamily: "inherit", padding: 0 }}>
+          <Icon name="close" size={20} color={C.accent} /> Back
+        </button>
+        {isOwner && (
+          <button onClick={() => { onDelete(lec.id); onClose(); }} style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, color: C.danger, fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>
+            <Icon name="close" size={16} color={C.danger} /> Delete
           </button>
         )}
+      </div>
+      <div style={{ padding: "24px 20px", maxWidth: 600, margin: "0 auto" }}>
+        <div style={{ display: "inline-block", background: C.accent + "18", color: C.accent, fontSize: 11, fontWeight: 700, letterSpacing: ".8px", textTransform: "uppercase", padding: "4px 10px", borderRadius: 20, marginBottom: 12 }}>
+          {lec.subject}
+        </div>
+        <div style={{ fontSize: 26, fontWeight: 800, color: C.text, lineHeight: 1.3, marginBottom: 8 }}>{lec.title}</div>
+        <div style={{ fontSize: 13, color: C.muted, marginBottom: 24, display: "flex", alignItems: "center", gap: 6 }}>
+          📅 {lec.date ? new Date(lec.date).toLocaleDateString("en-IN", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }) : fmtDate(lec.createdAt)}
+        </div>
+        <div style={{ height: 1, background: C.border, marginBottom: 24 }} />
+        <div style={{ fontSize: 16, color: C.text, lineHeight: 1.9, whiteSpace: "pre-wrap", marginBottom: 32 }}>{lec.description}</div>
         {lec.fileUrl && (
-          <div style={{ marginTop: 12, background: C.surface, borderRadius: 10, padding: "10px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", border: `1px solid ${C.border}` }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Icon name={isImage ? "image" : "pdf"} size={20} color={C.amber} />
-              <div>
-                <div style={{ fontSize: 13, color: C.text, fontWeight: 600 }}>{lec.fileName}</div>
-                <div style={{ fontSize: 11, color: C.muted }}>{isImage ? "Image" : "PDF"} attachment</div>
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              {isImage && <Btn onClick={() => window.open(lec.fileUrl, "_blank")} variant="ghost" small icon="image">View</Btn>}
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 16, marginBottom: 16 }}>
+            <div style={{ fontSize: 12, color: C.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".6px", marginBottom: 12 }}>Attachment</div>
+            {isImage && (
+              <img src={lec.fileUrl} alt="attachment" style={{ width: "100%", borderRadius: 10, marginBottom: 12, objectFit: "cover" }} />
+            )}
+            <div style={{ display: "flex", gap: 10 }}>
+              {isImage && <Btn onClick={() => window.open(lec.fileUrl, "_blank")} variant="ghost" small icon="image">View Full</Btn>}
               {!isOwner && <Btn onClick={handleDownload} variant="amber" small icon="download">Download</Btn>}
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+};
+// ─── Lecture Card ─────────────────────────────────────────────────────────────
+const LectureCard = ({ lec, isOwner, onDelete, onClick }) => {
+  const isImage = lec.fileType?.startsWith("image/");
+  return (
+    <div onClick={onClick} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "hidden", marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,.06)", cursor: "pointer", transition: "transform .15s, box-shadow .15s" }}
+      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(76,110,245,.15)"; }}
+      onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,.06)"; }}
+    >
+      <div style={{ background: `linear-gradient(90deg, ${C.accentDim}22, transparent)`, padding: "14px 16px", borderBottom: `1px solid ${C.border}40`, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 11, color: C.accent, fontWeight: 700, letterSpacing: ".8px", textTransform: "uppercase", marginBottom: 4 }}>{lec.subject}</div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: C.text }}>{lec.title}</div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ fontSize: 12, color: C.muted, whiteSpace: "nowrap" }}>
+            {lec.date ? new Date(lec.date).toLocaleDateString("en-IN", { weekday: "short", day: "2-digit", month: "short", year: "numeric" }) : fmtDate(lec.createdAt)}
+          </div>
+          {isOwner && <button onClick={e => { e.stopPropagation(); onDelete(lec.id); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}><Icon name="close" size={16} color={C.danger} /></button>}
+        </div>
+      </div>
+      <div style={{ padding: "12px 16px" }}>
+        <div style={{ color: C.muted, fontSize: 13.5, lineHeight: 1.6, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{lec.description}</div>
+        {lec.fileUrl && (
+          <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 6 }}>
+            <Icon name={isImage ? "image" : "pdf"} size={14} color={C.amber} />
+            <span style={{ fontSize: 12, color: C.amber, fontWeight: 600 }}>{isImage ? "Image attached" : "PDF attached"}</span>
+          </div>
+        )}
+        <div style={{ marginTop: 8, fontSize: 12, color: C.accent, fontWeight: 600 }}>Tap to read more →</div>
       </div>
     </div>
   );
@@ -404,11 +435,12 @@ const LecturesScreen = ({ session, setToast }) => {
   const [subject, setSubject] = useState("");
   const [desc, setDesc] = useState("");
   const [file, setFile] = useState(null);
+  const [selectedLec, setSelectedLec] = useState(null);
   const [loading, setLoading] = useState(false);
   const fileRef = useRef(null);
 
   useEffect(() => {
-    const q = query(collection(db, "lectures"), orderBy("createdAt", "desc"));
+    const q = queryFirestore(collection(db, "lectures"), orderBy("createdAt", "desc"));
     const unsub = onSnapshot(q, snap => setLectures(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
     return unsub;
   }, []);
@@ -508,7 +540,8 @@ const LecturesScreen = ({ session, setToast }) => {
       <div style={{ fontWeight: 700, fontSize: 16, color: C.text, marginBottom: 14 }}>
         {lectures.length > 0 ? `${lectures.length} Lecture${lectures.length > 1 ? "s" : ""}` : "No lectures yet"}
       </div>
-      {lectures.map(l => <LectureCard key={l.id} lec={l} isOwner={session.role === "owner"} onDelete={handleDelete} />)}
+      {selectedLec && <LectureDetail lec={selectedLec} isOwner={session.role === "owner"} onClose={() => setSelectedLec(null)} onDelete={handleDelete} />}
+{lectures.map(l => <LectureCard key={l.id} lec={l} isOwner={session.role === "owner"} onDelete={handleDelete} onClick={() => setSelectedLec(l)} />)}
       {lectures.length === 0 && (
         <div style={{ textAlign: "center", padding: 48, color: C.muted }}>
           <Icon name="book" size={48} color={C.border} />
@@ -528,7 +561,7 @@ const NoticesScreen = ({ session, setToast }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const q = query(collection(db, "notices"), orderBy("createdAt", "desc"));
+    const q = queryFirestore(collection(db, "notices"), orderBy("createdAt", "desc"));
     const unsub = onSnapshot(q, snap => setNotices(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
     return unsub;
   }, []);
@@ -647,11 +680,77 @@ const AboutScreen = () => (
   </div>
 );
 
+// ─── Search Screen ────────────────────────────────────────────────────────────
+const SearchScreen = ({ session }) => {
+  const [query, setQuery] = useState("");
+  const [lectures, setLectures] = useState([]);
+  const [selectedLec, setSelectedLec] = useState(null);
+
+  useEffect(() => {
+    const q = queryFirestore(collection(db, "lectures"), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(q, snap => setLectures(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+    return unsub;
+  }, []);
+
+  const filtered = lectures.filter(l => {
+    const q = query.toLowerCase();
+    return (
+      l.title?.toLowerCase().includes(q) ||
+      l.subject?.toLowerCase().includes(q) ||
+      l.description?.toLowerCase().includes(q) ||
+      l.date?.includes(q)
+    );
+  });
+
+  return (
+    <div style={{ padding: "20px 16px", maxWidth: 600, margin: "0 auto" }}>
+      <div style={{ fontWeight: 700, fontSize: 18, color: C.text, marginBottom: 16 }}>Search Lectures</div>
+      <div style={{ position: "relative", marginBottom: 20 }}>
+        <div style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }}>
+          <Icon name="search" size={18} color={C.muted} />
+        </div>
+        <input
+          value={query}
+          onChange={e => setqueryFirestore(e.target.value)}
+          placeholder="Search by title, subject, date..."
+          style={{
+            width: "100%", padding: "12px 14px 12px 40px",
+            background: C.surface, border: `1px solid ${C.border}`,
+            borderRadius: 12, fontSize: 14, color: C.text,
+            fontFamily: "inherit", outline: "none", boxSizing: "border-box",
+          }}
+          onFocus={e => e.target.style.borderColor = C.accent}
+          onBlur={e => e.target.style.borderColor = C.border}
+        />
+      </div>
+
+      {query.length === 0 && (
+        <div style={{ textAlign: "center", padding: 48, color: C.muted }}>
+          <Icon name="search" size={48} color={C.border} />
+          <div style={{ marginTop: 12, fontSize: 15 }}>Type to search lectures</div>
+          <div style={{ fontSize: 13, marginTop: 4 }}>Search by title, subject or date</div>
+        </div>
+      )}
+
+      {query.length > 0 && filtered.length === 0 && (
+        <div style={{ textAlign: "center", padding: 48, color: C.muted }}>
+          <Icon name="search" size={48} color={C.border} />
+          <div style={{ marginTop: 12, fontSize: 15 }}>No results found</div>
+          <div style={{ fontSize: 13, marginTop: 4 }}>Try a different search term</div>
+        </div>
+      )}
+
+      {selectedLec && <LectureDetail lec={selectedLec} isOwner={session.role === "owner"} onClose={() => setSelectedLec(null)} onDelete={() => {}} />}
+      {filtered.map(l => <LectureCard key={l.id} lec={l} isOwner={false} onDelete={() => {}} onClick={() => setSelectedLec(l)} />)}
+    </div>
+  );
+};
 // ─── Bottom Nav ───────────────────────────────────────────────────────────────
 const BottomNav = ({ page, onNavigate, newLectures, newNotices }) => {
   const tabs = [
     { id: "lectures", icon: "book", label: "Lectures", badge: newLectures },
     { id: "notices", icon: "bell", label: "Notices", badge: newNotices },
+    { id: "search", icon: "search", label: "Search", badge: false },
     { id: "profile", icon: "user", label: "Profile", badge: false },
     { id: "about", icon: "info", label: "About", badge: false },
   ];
@@ -717,7 +816,7 @@ export default function App() {
     setNeedsProfile(false);
   };
   useEffect(() => {
-    const q = query(collection(db, "lectures"), orderBy("createdAt", "desc"));
+    const q = queryFirestore(collection(db, "lectures"), orderBy("createdAt", "desc"));
     const unsub = onSnapshot(q, snap => {
       if (snap.docs.length > 0) {
         const latest = snap.docs[0].id;
@@ -728,7 +827,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const q = query(collection(db, "notices"), orderBy("createdAt", "desc"));
+    const q = queryFirestore(collection(db, "notices"), orderBy("createdAt", "desc"));
     const unsub = onSnapshot(q, snap => {
       if (snap.docs.length > 0) {
         const latest = snap.docs[0].id;
@@ -773,6 +872,7 @@ export default function App() {
           <div style={{ paddingBottom: 80 }}>
             {page === "lectures" && <LecturesScreen session={session} setToast={setToast} />}
             {page === "notices" && <NoticesScreen session={session} setToast={setToast} />}
+            {page === "search" && <SearchScreen session={session} />}
             {page === "profile" && <ProfileScreen session={session} onUpdateSession={setSession} />}
             {page === "about" && <AboutScreen />}
           </div>
