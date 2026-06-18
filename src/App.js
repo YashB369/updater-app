@@ -711,7 +711,7 @@ const SearchScreen = ({ session }) => {
         </div>
         <input
           value={query}
-          onChange={e => setqueryFirestore(e.target.value)}
+          onChange={e => setQuery(e.target.value)}
           placeholder="Search by title, subject, date..."
           style={{
             width: "100%", padding: "12px 14px 12px 40px",
