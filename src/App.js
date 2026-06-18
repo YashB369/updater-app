@@ -311,7 +311,7 @@ const ProfileSetup = ({ session, onComplete, setToast }) => {
           <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFile} />
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <Input label="Full Name" value={name} onChange={setName} placeholder="Yash Bhagat" required />
+          <Input label="Full Name" value={name} onChange={setName} placeholder="Enter Your Name" required />
           <Input label="Roll Number" value={roll} onChange={setRoll} type="number" placeholder="2024001" required />
           <Btn onClick={handleSubmit} full>Save & Continue</Btn>
         </div>
