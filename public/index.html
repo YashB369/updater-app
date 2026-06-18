@@ -9,6 +9,20 @@
       name="description"
       content="Web site created using create-react-app"
     />
+    <style>
+  html, body {
+    overscroll-behavior-y: none;
+    overflow: hidden;
+    height: 100%;
+    position: fixed;
+    width: 100%;
+  }
+  #root {
+    height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+</style>
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <!--
       manifest.json provides metadata used when your web app is installed on a
