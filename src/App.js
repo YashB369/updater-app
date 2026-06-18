@@ -214,9 +214,16 @@ const AuthScreen = ({ onAuth, setToast }) => {
         if (trimmedEmail !== OWNER_EMAIL || trimmedPin !== OWNER_PIN) {
           setToast({ msg: "Invalid owner credentials", type: "error" }); setLoading(false); return;
         }
-        const cred = await signInWithEmailAndPassword(auth, trimmedEmail, trimmedEmail).catch(async () => {
-          return await createUserWithEmailAndPassword(auth, trimmedEmail, trimmedEmail + "_owner_pass");
-        });
+        let cred;
+        try {
+          cred = await signInWithEmailAndPassword(auth, trimmedEmail, trimmedEmail + "_owner_pass");
+        } catch {
+          try {
+            cred = await createUserWithEmailAndPassword(auth, trimmedEmail, trimmedEmail + "_owner_pass");
+          } catch {
+            cred = await signInWithEmailAndPassword(auth, trimmedEmail, trimmedEmail + "_owner_pass");
+          }
+        }
         await setDoc(doc(db, "users", cred.user.uid), { email: trimmedEmail, role: "owner", profile: { name: "Owner" } }, { merge: true });
         onAuth({ uid: cred.user.uid, email: trimmedEmail, role: "owner", profile: { name: "Owner" } });
       } else if (mode === "signup") {
