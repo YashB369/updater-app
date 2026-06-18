@@ -401,21 +401,9 @@ const LecturesScreen = ({ session, setToast }) => {
   const handleFile = (e) => {
     const f = e.target.files[0];
     if (!f) return;
-    const img = new Image();
     const reader = new FileReader();
     reader.onload = (ev) => {
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const MAX = 600;
-        let w = img.width, h = img.height;
-        if (w > MAX) { h = (h * MAX) / w; w = MAX; }
-        if (h > MAX) { w = (w * MAX) / h; h = MAX; }
-        canvas.width = w; canvas.height = h;
-        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-        const compressed = canvas.toDataURL("image/jpeg", 0.5);
-        setFile({ url: compressed, name: f.name, type: "image/jpeg" });
-      };
-      img.src = ev.target.result;
+      setFile({ url: ev.target.result, name: f.name, type: f.type, raw: f });
     };
     reader.readAsDataURL(f);
   };
@@ -424,9 +412,38 @@ const LecturesScreen = ({ session, setToast }) => {
     if (!title || !subject || !desc) { setToast({ msg: "Fill all required fields", type: "error" }); return; }
     setLoading(true);
     try {
+      let fileUrl = null;
+      let fileName = null;
+      let fileType = null;
+
+      if (file) {
+        if (file.type.startsWith("image/")) {
+          const formData = new FormData();
+          formData.append("image", file.raw);
+          const res = await fetch("https://api.imgbb.com/1/upload?key=5cf22bb839530082a818dccdc34a6012", {
+            method: "POST",
+            body: formData,
+          });
+          const data = await res.json();
+          if (data.success) {
+            fileUrl = data.data.url;
+            fileName = file.name;
+            fileType = file.type;
+          } else {
+            setToast({ msg: "Image upload failed", type: "error" });
+            setLoading(false);
+            return;
+          }
+        } else {
+          fileUrl = file.url;
+          fileName = file.name;
+          fileType = file.type;
+        }
+      }
+
       await addDoc(collection(db, "lectures"), {
         date, title, subject, description: desc,
-        fileUrl: file?.url || null, fileName: file?.name || null, fileType: file?.type || null,
+        fileUrl, fileName, fileType,
         createdAt: serverTimestamp(),
       });
       setTitle(""); setSubject(""); setDesc(""); setFile(null);
