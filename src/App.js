@@ -401,9 +401,23 @@ const LecturesScreen = ({ session, setToast }) => {
   const handleFile = (e) => {
     const f = e.target.files[0];
     if (!f) return;
-    const r = new FileReader();
-    r.onload = (ev) => setFile({ url: ev.target.result, name: f.name, type: f.type });
-    r.readAsDataURL(f);
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX = 600;
+        let w = img.width, h = img.height;
+        if (w > MAX) { h = (h * MAX) / w; w = MAX; }
+        if (h > MAX) { w = (w * MAX) / h; h = MAX; }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        const compressed = canvas.toDataURL("image/jpeg", 0.5);
+        setFile({ url: compressed, name: f.name, type: "image/jpeg" });
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(f);
   };
 
   const handleSend = async () => {
