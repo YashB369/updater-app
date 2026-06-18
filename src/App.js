@@ -332,7 +332,6 @@ const ProfileSetup = ({ session, onComplete, setToast }) => {
   const handleSubmit = () => {
     if (!name.trim()) { setToast({ msg: "Name is required", type: "error" }); return; }
     if (!roll.trim() || isNaN(Number(roll))) { setToast({ msg: "Valid roll number required", type: "error" }); return; }
-    if (!avatar) { setToast({ msg: "Please upload a profile picture", type: "error" }); return; }
     onComplete({ name: name.trim(), rollNumber: roll.trim(), avatar });
   };
 
@@ -357,7 +356,7 @@ const ProfileSetup = ({ session, onComplete, setToast }) => {
           >
             {avatar ? <img src={avatar} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <Icon name="upload" size={28} color={C.muted} />}
           </div>
-          <div style={{ fontSize: 12, color: C.muted }}>Tap to upload photo</div>
+          <div style={{ fontSize: 12, color: C.muted }}>Tap to upload photo (optional)</div>
           <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFile} />
         </div>
 
@@ -372,7 +371,7 @@ const ProfileSetup = ({ session, onComplete, setToast }) => {
 };
 
 // ─── Lecture Card ──────────────────────────────────────────────────────────────
-const LectureCard = ({ lec, isOwner }) => {
+const LectureCard = ({ lec, isOwner, onDelete }) => {
   const [expanded, setExpanded] = useState(false);
   const isImage = lec.fileType?.startsWith("image/");
 
@@ -400,7 +399,12 @@ const LectureCard = ({ lec, isOwner }) => {
           </div>
           <div style={{ fontSize: 17, fontWeight: 700, color: C.text }}>{lec.title}</div>
         </div>
-        <div style={{ fontSize: 12, color: C.muted, whiteSpace: "nowrap", marginLeft: 12 }}>{fmtDate(lec.date)}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ fontSize: 12, color: C.muted, whiteSpace: "nowrap" }}>{fmtDate(lec.date)}</div>
+          {isOwner && <button onClick={() => onDelete(lec.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}>
+            <Icon name="close" size={16} color={C.danger} />
+          </button>}
+        </div>
       </div>
 
       {/* Body */}
@@ -433,7 +437,7 @@ const LectureCard = ({ lec, isOwner }) => {
 };
 
 // ─── Notice Card ───────────────────────────────────────────────────────────────
-const NoticeCard = ({ notice }) => (
+const NoticeCard = ({ notice, isOwner, onDelete }) => (
   <div style={{
     background: C.card, border: `1px solid ${C.border}`, borderLeft: `4px solid ${C.amber}`,
     borderRadius: 14, padding: "14px 16px", marginBottom: 12,
@@ -444,7 +448,12 @@ const NoticeCard = ({ notice }) => (
   >
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
       <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{notice.subject}</div>
-      <div style={{ fontSize: 12, color: C.muted, whiteSpace: "nowrap", marginLeft: 12 }}>{fmtDate(notice.date)}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ fontSize: 12, color: C.muted, whiteSpace: "nowrap" }}>{fmtDate(notice.date)}</div>
+        {isOwner && <button onClick={() => onDelete(notice.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}>
+          <Icon name="close" size={16} color={C.danger} />
+        </button>}
+      </div>
     </div>
     <div style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.6 }}>{notice.description}</div>
   </div>
@@ -466,6 +475,10 @@ const LecturesScreen = ({ session, store, onUpdate, setToast }) => {
     const r = new FileReader();
     r.onload = (ev) => setFile({ url: ev.target.result, name: f.name, type: f.type });
     r.readAsDataURL(f);
+  };
+
+  const handleDelete = (id) => {
+    onUpdate(s => { s.lectures = s.lectures.filter(l => l.id !== id); });
   };
 
   const handleSend = () => {
@@ -523,7 +536,7 @@ const LecturesScreen = ({ session, store, onUpdate, setToast }) => {
       <div style={{ fontWeight: 700, fontSize: 16, color: C.text, marginBottom: 14 }}>
         {store.lectures.length > 0 ? `${store.lectures.length} Lecture${store.lectures.length > 1 ? "s" : ""}` : "No lectures yet"}
       </div>
-      {store.lectures.map(l => <LectureCard key={l.id} lec={l} isOwner={session.role === "owner"} />)}
+      {store.lectures.map(l => <LectureCard key={l.id} lec={l} isOwner={session.role === "owner"} onDelete={handleDelete} />)}
       {store.lectures.length === 0 && (
         <div style={{ textAlign: "center", padding: 48, color: C.muted }}>
           <Icon name="book" size={48} color={C.border} />
@@ -541,6 +554,10 @@ const NoticesScreen = ({ session, store, onUpdate, setToast }) => {
   const [subject, setSubject] = useState("");
   const [desc, setDesc] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const handleDelete = (id) => {
+    onUpdate(s => { s.notices = s.notices.filter(n => n.id !== id); });
+  };
 
   const handlePublish = () => {
     if (!subject || !desc) { setToast({ msg: "Fill all required fields", type: "error" }); return; }
@@ -575,7 +592,7 @@ const NoticesScreen = ({ session, store, onUpdate, setToast }) => {
       <div style={{ fontWeight: 700, fontSize: 16, color: C.text, marginBottom: 14 }}>
         {store.notices.length > 0 ? `${store.notices.length} Notice${store.notices.length > 1 ? "s" : ""}` : "No notices"}
       </div>
-      {store.notices.map(n => <NoticeCard key={n.id} notice={n} />)}
+      {store.notices.map(n => <NoticeCard key={n.id} notice={n} isOwner={session.role === "owner"} onDelete={handleDelete} />)}
       {store.notices.length === 0 && (
         <div style={{ textAlign: "center", padding: 48, color: C.muted }}>
           <Icon name="bell" size={48} color={C.border} />
@@ -587,22 +604,43 @@ const NoticesScreen = ({ session, store, onUpdate, setToast }) => {
 };
 
 // ─── Profile Screen ────────────────────────────────────────────────────────────
-const ProfileScreen = ({ session }) => {
+const ProfileScreen = ({ session, onUpdateSession }) => {
   const p = session.profile;
+  const fileRef = useRef(null);
+
+  const handleAvatarChange = (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = (ev) => {
+      const updated = { ...session, profile: { ...session.profile, avatar: ev.target.result } };
+      onUpdateSession(updated);
+      localStorage.setItem("updater_session", JSON.stringify(updated));
+    };
+    r.readAsDataURL(f);
+  };
+  
   return (
     <div style={{ padding: "32px 20px", maxWidth: 480, margin: "0 auto" }}>
       <div style={{ background: C.card, borderRadius: 20, overflow: "hidden", border: `1px solid ${C.border}` }}>
         <div style={{ background: `linear-gradient(135deg, ${C.accentDim}, ${C.bg})`, height: 100 }} />
         <div style={{ padding: "0 24px 24px", marginTop: -44 }}>
-          <div style={{
-            width: 80, height: 80, borderRadius: "50%", border: `3px solid ${C.card}`,
-            background: p?.avatar ? "none" : C.accentDim,
-            overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
+        <div
+            onClick={() => fileRef.current?.click()}
+            style={{
+              width: 80, height: 80, borderRadius: "50%", border: `3px solid ${C.card}`,
+              background: p?.avatar ? "none" : C.accentDim,
+              overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer",
+            }}>
             {p?.avatar
               ? <img src={p.avatar} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               : <span style={{ fontSize: 28, color: C.white, fontWeight: 700 }}>{(p?.name || session.email)[0].toUpperCase()}</span>
             }
+          </div>
+          <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleAvatarChange} />
+          <div style={{ fontSize: 11, color: C.accent, marginTop: 6, cursor: "pointer" }} onClick={() => fileRef.current?.click()}>
+            Tap to change photo
           </div>
           <div style={{ marginTop: 12 }}>
             <div style={{ fontSize: 22, fontWeight: 800, color: C.text }}>{p?.name || session.email}</div>
@@ -646,7 +684,7 @@ const AboutScreen = () => (
         ["Purpose", "Updater is a one-way information broadcasting app designed for educators to share lectures and notices with students in a clean, reliable feed."],
         ["Tech Stack", "Built with React (web prototype). Production version targets React Native for Android & iOS with Firebase for auth, Firestore for data, and Firebase Storage for attachments."],
         ["Role System", "A single Owner can publish content. Students register and receive updates in real-time. Owner access is protected by restricted credentials."],
-        ["Developer", "Yash Bhagat · yashbhagat579@gmail.com"],
+        ["Developer", "Yash Bhagat"],
       ].map(([title, text]) => (
         <div key={title} style={{ marginBottom: 16, padding: "14px", background: C.surface, borderRadius: 12, border: `1px solid ${C.border}` }}>
           <div style={{ fontSize: 12, color: C.accent, fontWeight: 700, letterSpacing: ".8px", textTransform: "uppercase", marginBottom: 6 }}>{title}</div>
@@ -703,7 +741,12 @@ export default function App() {
   const [needsProfile, setNeedsProfile] = useState(false);
 
   // persist store
-  useEffect(() => { saveStore(store); }, [store]);
+   useEffect(() => { saveStore(store); }, [store]);
+
+  useEffect(() => {
+    const saved = loadStore();
+    if (saved) setStore(saved);
+  }, []);
 
   const updateStore = (fn) => {
     setStore(prev => {
@@ -728,7 +771,9 @@ export default function App() {
 
   const handleProfileComplete = (profile) => {
     updateStore(s => { if (s.users[session.email]) s.users[session.email].profile = profile; });
-    setSession(prev => ({ ...prev, profile }));
+    const updatedSession = { ...session, profile };
+    setSession(updatedSession);
+    localStorage.setItem("updater_session", JSON.stringify(updatedSession));
     setNeedsProfile(false);
   };
 
@@ -757,7 +802,7 @@ export default function App() {
           <div style={{ paddingBottom: 80 }}>
             {page === "lectures" && <LecturesScreen {...commonProps} />}
             {page === "notices" && <NoticesScreen {...commonProps} />}
-            {page === "profile" && <ProfileScreen session={session} />}
+            {page === "profile" && <ProfileScreen session={session} onUpdateSession={setSession} />}
             {page === "about" && <AboutScreen />}
           </div>
           <BottomNav page={page} onNavigate={setPage} />
