@@ -324,10 +324,22 @@ const ProfileSetup = ({ session, onComplete, setToast }) => {
 const LectureCard = ({ lec, isOwner, onDelete }) => {
   const [expanded, setExpanded] = useState(false);
   const isImage = lec.fileType?.startsWith("image/");
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!lec.fileUrl) return;
-    const a = document.createElement("a");
-    a.href = lec.fileUrl; a.download = lec.fileName || "attachment"; a.click();
+    try {
+      const response = await fetch(lec.fileUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = lec.fileName || "attachment";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      window.open(lec.fileUrl, "_blank");
+    }
   };
   return (
     <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "hidden", marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,.06)" }}>
@@ -359,7 +371,10 @@ const LectureCard = ({ lec, isOwner, onDelete }) => {
                 <div style={{ fontSize: 11, color: C.muted }}>{isImage ? "Image" : "PDF"} attachment</div>
               </div>
             </div>
-            {!isOwner && <Btn onClick={handleDownload} variant="amber" small icon="download">Download</Btn>}
+            <div style={{ display: "flex", gap: 8 }}>
+              {isImage && <Btn onClick={() => window.open(lec.fileUrl, "_blank")} variant="ghost" small icon="image">View</Btn>}
+              {!isOwner && <Btn onClick={handleDownload} variant="amber" small icon="download">Download</Btn>}
+            </div>
           </div>
         )}
       </div>
