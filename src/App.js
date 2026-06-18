@@ -337,7 +337,7 @@ const LectureCard = ({ lec, isOwner, onDelete }) => {
           <div style={{ fontSize: 17, fontWeight: 700, color: C.text }}>{lec.title}</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ fontSize: 12, color: C.muted, whiteSpace: "nowrap" }}>{fmtDate(lec.createdAt)}</div>
+          <div style={{ fontSize: 12, color: C.muted, whiteSpace: "nowrap" }}>{lec.date ? new Date(lec.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : fmtDate(lec.createdAt)}</div>
           {isOwner && <button onClick={() => onDelete(lec.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}><Icon name="close" size={16} color={C.danger} /></button>}
         </div>
       </div>
@@ -373,7 +373,7 @@ const NoticeCard = ({ notice, isOwner, onDelete }) => (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
       <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{notice.subject}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <div style={{ fontSize: 12, color: C.muted, whiteSpace: "nowrap" }}>{fmtDate(notice.createdAt)}</div>
+        <div style={{ fontSize: 12, color: C.muted, whiteSpace: "nowrap" }}>{notice.date ? new Date(notice.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : fmtDate(notice.createdAt)}</div>
         {isOwner && <button onClick={() => onDelete(notice.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}><Icon name="close" size={16} color={C.danger} /></button>}
       </div>
     </div>
