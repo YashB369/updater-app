@@ -633,15 +633,25 @@ const AboutScreen = () => (
 );
 
 // ─── Bottom Nav ───────────────────────────────────────────────────────────────
-const BottomNav = ({ page, onNavigate }) => {
-  const tabs = [{ id: "lectures", icon: "book", label: "Lectures" }, { id: "notices", icon: "bell", label: "Notices" }, { id: "profile", icon: "user", label: "Profile" }, { id: "about", icon: "info", label: "About" }];
+const BottomNav = ({ page, onNavigate, newLectures, newNotices }) => {
+  const tabs = [
+    { id: "lectures", icon: "book", label: "Lectures", badge: newLectures },
+    { id: "notices", icon: "bell", label: "Notices", badge: newNotices },
+    { id: "profile", icon: "user", label: "Profile", badge: false },
+    { id: "about", icon: "info", label: "About", badge: false },
+  ];
   return (
     <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: C.surface, borderTop: `1px solid ${C.border}`, display: "flex", padding: "8px 0 12px", zIndex: 100 }}>
       {tabs.map(t => {
         const active = page === t.id;
         return (
           <button key={t.id} onClick={() => onNavigate(t.id)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer", padding: "4px 0", color: active ? C.accent : C.muted, fontSize: 11, fontWeight: 600, fontFamily: "inherit", transition: "color .15s" }}>
-            <Icon name={t.icon} size={22} color={active ? C.accent : C.muted} />
+            <div style={{ position: "relative" }}>
+              <Icon name={t.icon} size={22} color={active ? C.accent : C.muted} />
+              {t.badge && !active && (
+                <div style={{ position: "absolute", top: -2, right: -4, width: 8, height: 8, borderRadius: "50%", background: C.danger, border: `2px solid ${C.surface}` }} />
+              )}
+            </div>
             {t.label}
           </button>
         );
@@ -657,6 +667,10 @@ export default function App() {
   const [page, setPage] = useState("lectures");
   const [toast, setToast] = useState(null);
   const [needsProfile, setNeedsProfile] = useState(false);
+  const [newLectures, setNewLectures] = useState(false);
+  const [newNotices, setNewNotices] = useState(false);
+  const lastSeenLecture = useRef(localStorage.getItem("lastSeenLecture") || null);
+  const lastSeenNotice = useRef(localStorage.getItem("lastSeenNotice") || null);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -687,8 +701,40 @@ export default function App() {
     setSession(prev => ({ ...prev, profile }));
     setNeedsProfile(false);
   };
+  useEffect(() => {
+    const q = query(collection(db, "lectures"), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(q, snap => {
+      if (snap.docs.length > 0) {
+        const latest = snap.docs[0].id;
+        if (lastSeenLecture.current !== latest) setNewLectures(true);
+      }
+    });
+    return unsub;
+  }, []);
 
+  useEffect(() => {
+    const q = query(collection(db, "notices"), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(q, snap => {
+      if (snap.docs.length > 0) {
+        const latest = snap.docs[0].id;
+        if (lastSeenNotice.current !== latest) setNewNotices(true);
+      }
+    });
+    return unsub;
+  }, []);
   const handleLogout = () => { signOut(auth); setSession(null); setPage("lectures"); };
+
+  const handleNavigate = (p) => {
+    if (p === "lectures") {
+      setNewLectures(false);
+      if (lastSeenLecture.current) localStorage.setItem("lastSeenLecture", lastSeenLecture.current);
+    }
+    if (p === "notices") {
+      setNewNotices(false);
+      if (lastSeenNotice.current) localStorage.setItem("lastSeenNotice", lastSeenNotice.current);
+    }
+    setPage(p);
+  };
 
   if (authLoading) return (
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -708,14 +754,14 @@ export default function App() {
         <ProfileSetup session={session} onComplete={handleProfileComplete} setToast={setToast} />
       ) : (
         <>
-          <Header session={session} onNavigate={setPage} onLogout={handleLogout} />
+          <Header session={session} onNavigate={handleNavigate} onLogout={handleLogout} />
           <div style={{ paddingBottom: 80 }}>
             {page === "lectures" && <LecturesScreen session={session} setToast={setToast} />}
             {page === "notices" && <NoticesScreen session={session} setToast={setToast} />}
             {page === "profile" && <ProfileScreen session={session} onUpdateSession={setSession} />}
             {page === "about" && <AboutScreen />}
           </div>
-          <BottomNav page={page} onNavigate={setPage} />
+          <BottomNav page={page} onNavigate={handleNavigate} newLectures={newLectures} newNotices={newNotices} />
         </>
       )}
     </div>
