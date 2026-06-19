@@ -17,27 +17,23 @@ const auth = getAuth(firebaseApp);
 const db = getFirestore(firebaseApp);
 
 // ─── Design Tokens ───────────────────────────────────────────────────────────
-const getColors = (dark) => ({
-  bg: dark ? "#0F1117" : "#F5F7FF",
-  surface: dark ? "#1A1D27" : "#FFFFFF",
-  card: dark ? "#20243A" : "#FFFFFF",
-  border: dark ? "#2A2F4A" : "#E0E4F0",
+const isDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+const C = {
+  bg: isDark ? "#0F1117" : "#F5F7FF",
+  surface: isDark ? "#1A1D27" : "#FFFFFF",
+  card: isDark ? "#20243A" : "#FFFFFF",
+  border: isDark ? "#2A2F4A" : "#E0E4F0",
   accent: "#4C6EF5",
   accentDim: "#3D4F99",
   amber: "#F59F00",
   amberDim: "#7A521A",
-  text: dark ? "#E8EAF6" : "#1A1D27",
-  muted: dark ? "#7B80A0" : "#6B7280",
+  text: isDark ? "#E8EAF6" : "#1A1D27",
+  muted: isDark ? "#7B80A0" : "#6B7280",
   danger: "#FF5252",
   success: "#4CAF7D",
   white: "#FFFFFF",
-});
-
-let C = getColors(
-  localStorage.getItem("theme") === "dark" ||
-  (!localStorage.getItem("theme") && window.matchMedia("(prefers-color-scheme: dark)").matches)
-);
-
+};
 // ─── Utility ──────────────────────────────────────────────────────────────────
 const fmtDate = (d) => {
   if (!d) return "";
@@ -141,7 +137,7 @@ const Toast = ({ msg, type, onClose }) => {
 };
 
 // ─── Dropdown Menu ────────────────────────────────────────────────────────────
-const MenuDropdown = ({ session, onNavigate, onLogout, isDarkMode, onToggleTheme }) => {
+const MenuDropdown = ({ session, onNavigate, onLogout }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   useEffect(() => {
@@ -161,18 +157,7 @@ const MenuDropdown = ({ session, onNavigate, onLogout, isDarkMode, onToggleTheme
         {[0,1,2].map(i => <span key={i} style={{ width: 4, height: 4, borderRadius: "50%", background: C.text, display: "block" }} />)}
       </button>
       {open && (
-       <div style={{ position: "absolute", right: 0, top: "calc(100% + 8px)", background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, minWidth: 200, zIndex: 1000, overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,.2)" }}>
-          <button onClick={() => { onToggleTheme(); setOpen(false); }} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "12px 16px", background: "none", border: "none", color: C.text, fontSize: 14, cursor: "pointer" }}
-            onMouseEnter={e => e.currentTarget.style.background = C.surface}
-            onMouseLeave={e => e.currentTarget.style.background = "none"}>
-            <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              {isDarkMode ? "☀️ Light Mode" : "🌙 Dark Mode"}
-            </span>
-            <div style={{ width: 36, height: 20, borderRadius: 10, background: isDarkMode ? C.accent : C.border, position: "relative", transition: "background .2s", flexShrink: 0 }}>
-              <div style={{ position: "absolute", top: 3, left: isDarkMode ? 19 : 3, width: 14, height: 14, borderRadius: "50%", background: C.white, transition: "left .2s" }} />
-            </div>
-          </button>
-          <div style={{ height: 1, background: C.border }} />
+        <div style={{ position: "absolute", right: 0, top: "calc(100% + 8px)", background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, minWidth: 180, zIndex: 1000, overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,.2)" }}>
           {items.map(item => (
             <button key={item.page} onClick={() => { onNavigate(item.page); setOpen(false); }} style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "12px 16px", background: "none", border: "none", color: C.text, fontSize: 14, cursor: "pointer", textAlign: "left" }}
               onMouseEnter={e => e.currentTarget.style.background = C.surface}
@@ -195,7 +180,7 @@ const MenuDropdown = ({ session, onNavigate, onLogout, isDarkMode, onToggleTheme
 };
 
 // ─── Header ───────────────────────────────────────────────────────────────────
-const Header = ({ session, onNavigate, onLogout, isDarkMode, onToggleTheme }) => (
+const Header = ({ session, onNavigate, onLogout }) => (
   <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100 }}>
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
       <div style={{ width: 32, height: 32, borderRadius: 8, background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 16, color: C.white }}>U</div>
@@ -204,7 +189,7 @@ const Header = ({ session, onNavigate, onLogout, isDarkMode, onToggleTheme }) =>
         {session && <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{session.role === "owner" ? "Owner" : session.profile?.name || session.email}</div>}
       </div>
     </div>
-    {session && <MenuDropdown session={session} onNavigate={onNavigate} onLogout={onLogout} isDarkMode={isDarkMode} onToggleTheme={onToggleTheme} />}
+    {session && <MenuDropdown session={session} onNavigate={onNavigate} onLogout={onLogout} />}
   </div>
 );
 
@@ -892,16 +877,6 @@ const BottomNav = ({ page, onNavigate, newLectures, newNotices }) => {
 
 // ─── Root App ─────────────────────────────────────────────────────────────────
 export default function App() {
-  const [isDarkMode, setIsDarkMode] = useState(
-  localStorage.getItem("theme") === "dark" ||
-  (!localStorage.getItem("theme") && window.matchMedia("(prefers-color-scheme: dark)").matches)
-);
-
-const handleToggleTheme = () => {
-  const next = !isDarkMode;
-  localStorage.setItem("theme", next ? "dark" : "light");
-  window.location.reload();
-};
   const [session, setSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [page, setPage] = useState("lectures");
@@ -999,7 +974,7 @@ const handleToggleTheme = () => {
   );
 
   return (
-    <div key={isDarkMode ? "dark" : "light"} style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: C.text, maxWidth: 768, margin: "0 auto", position: "relative" }}>
+    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: C.text, maxWidth: 768, margin: "0 auto", position: "relative" }}>
       {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
       {!session ? (
         <AuthScreen onAuth={handleAuth} setToast={setToast} />
@@ -1007,7 +982,7 @@ const handleToggleTheme = () => {
         <ProfileSetup session={session} onComplete={handleProfileComplete} setToast={setToast} />
       ) : (
         <>
-          <Header session={session} onNavigate={handleNavigate} onLogout={handleLogout} isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} />
+          <Header session={session} onNavigate={handleNavigate} onLogout={handleLogout} />
           <div style={{ paddingBottom: 80 }}>
             {page === "lectures" && <LecturesScreen session={session} setToast={setToast} />}
             {page === "notices" && <NoticesScreen session={session} setToast={setToast} />}
