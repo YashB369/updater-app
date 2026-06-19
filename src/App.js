@@ -320,8 +320,25 @@ const ProfileSetup = ({ session, onComplete, setToast }) => {
     </div>
   );
 };
+//Lecture Detail//
 const LectureDetail = ({ lec, isOwner, onClose, onDelete }) => {
   const isImage = lec.fileType?.startsWith("image/");
+  const [viewImg, setViewImg] = useState(null);
+
+  useEffect(() => {
+    const handleBack = () => {
+      if (viewImg) {
+        setViewImg(null);
+        window.history.pushState(null, "", window.location.href);
+      } else {
+        onClose();
+        window.history.pushState(null, "", window.location.href);
+      }
+    };
+    window.addEventListener("popstate", handleBack);
+    window.history.pushState(null, "", window.location.href);
+    return () => window.removeEventListener("popstate", handleBack);
+  }, [viewImg]);
 
   const handleDownload = async () => {
     if (!lec.fileUrl) return;
@@ -343,6 +360,12 @@ const LectureDetail = ({ lec, isOwner, onClose, onDelete }) => {
 
   return (
     <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: C.bg, zIndex: 500, overflowY: "auto", maxWidth: 768, margin: "0 auto" }}>
+      {viewImg && (
+        <div onClick={() => setViewImg(null)} style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,.95)", zIndex: 600, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
+          <button onClick={() => setViewImg(null)} style={{ position: "absolute", top: 16, left: 16, background: "none", border: "none", color: "#fff", fontSize: 16, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>← Back</button>
+          <img src={viewImg} alt="full view" style={{ maxWidth: "100%", maxHeight: "90vh", objectFit: "contain", borderRadius: 8 }} />
+        </div>
+      )}
       <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "14px 20px", display: "flex", alignItems: "center", gap: 12, position: "sticky", top: 0, zIndex: 10 }}>
         <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, color: C.accent, fontSize: 14, fontWeight: 600, fontFamily: "inherit", padding: 0 }}>
           <Icon name="close" size={20} color={C.accent} /> Back
@@ -374,21 +397,39 @@ const LectureDetail = ({ lec, isOwner, onClose, onDelete }) => {
                 return (
                   <div key={i} style={{ marginBottom: 12 }}>
                     {isImg && <img src={f.url} alt={f.name} style={{ width: "100%", borderRadius: 10, marginBottom: 8, objectFit: "cover" }} />}
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <span style={{ fontSize: 13, color: C.text, flex: 1 }}>{f.name}</span>
-                      {isImg && <Btn onClick={() => window.open(f.url, "_blank")} variant="ghost" small icon="image">View</Btn>}
-                      {!isOwner && <Btn onClick={async () => {
-                        try {
-                          const res = await fetch(f.url);
-                          const blob = await res.blob();
-                          const url = window.URL.createObjectURL(blob);
-                          const a = document.createElement("a");
-                          a.href = url; a.download = f.name;
-                          document.body.appendChild(a); a.click();
-                          document.body.removeChild(a);
-                          window.URL.revokeObjectURL(url);
-                        } catch { window.open(f.url, "_blank"); }
-                      }} variant="amber" small icon="download">Download</Btn>}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+                      <div style={{ fontSize: 12, color: C.muted, wordBreak: "break-all" }}>{f.name}</div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        {isImg && (
+                          <button onClick={(e) => { e.stopPropagation(); setViewImg(f.url); window.history.pushState(null, "", window.location.href); }} style={{
+                            flex: 1, padding: "10px", background: C.surface, border: `1px solid ${C.border}`,
+                            borderRadius: 10, cursor: "pointer", fontSize: 13, fontWeight: 600,
+                            color: C.accent, fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 6
+                          }}>
+                            <Icon name="image" size={16} color={C.accent} /> View Full
+                          </button>
+                        )}
+                        {!isOwner && (
+                          <button onClick={async () => {
+                            try {
+                              const res = await fetch(f.url);
+                              const blob = await res.blob();
+                              const url = window.URL.createObjectURL(blob);
+                              const a = document.createElement("a");
+                              a.href = url; a.download = f.name;
+                              document.body.appendChild(a); a.click();
+                              document.body.removeChild(a);
+                              window.URL.revokeObjectURL(url);
+                            } catch { window.open(f.url, "_blank"); }
+                          }} style={{
+                            flex: 1, padding: "10px", background: C.amber, border: "none",
+                            borderRadius: 10, cursor: "pointer", fontSize: 13, fontWeight: 600,
+                            color: C.bg, fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 6
+                          }}>
+                            <Icon name="download" size={16} color={C.bg} /> Download
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -397,7 +438,7 @@ const LectureDetail = ({ lec, isOwner, onClose, onDelete }) => {
               <div>
                 {isImage && <img src={lec.fileUrl} alt="attachment" style={{ width: "100%", borderRadius: 10, marginBottom: 12, objectFit: "cover" }} />}
                 <div style={{ display: "flex", gap: 10 }}>
-                  {isImage && <Btn onClick={() => window.open(lec.fileUrl, "_blank")} variant="ghost" small icon="image">View Full</Btn>}
+                  {isImage && <Btn onClick={() => { setViewImg(lec.fileUrl); window.history.pushState(null, "", window.location.href); }} variant="ghost" small icon="image">View Full</Btn>}
                   {!isOwner && <Btn onClick={handleDownload} variant="amber" small icon="download">Download</Btn>}
                 </div>
               </div>
@@ -461,6 +502,13 @@ const NoticeCard = ({ notice, isOwner, onDelete }) => (
 // ─── Lectures Screen ──────────────────────────────────────────────────────────
 const LecturesScreen = ({ session, setToast }) => {
   const [lectures, setLectures] = useState([]);
+  const groupedLectures = lectures.reduce((groups, lec) => {
+    const date = lec.date || "Unknown";
+    if (!groups[date]) groups[date] = [];
+    groups[date].push(lec);
+    return groups;
+  }, {});
+  const sortedDates = Object.keys(groupedLectures).sort((a, b) => new Date(b) - new Date(a));
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("");
@@ -572,17 +620,34 @@ const LecturesScreen = ({ session, setToast }) => {
           </div>
         </div>
       )}
-      <div style={{ fontWeight: 700, fontSize: 16, color: C.text, marginBottom: 14 }}>
+    <div style={{ fontWeight: 700, fontSize: 16, color: C.text, marginBottom: 14 }}>
         {lectures.length > 0 ? `${lectures.length} Lecture${lectures.length > 1 ? "s" : ""}` : "No lectures yet"}
       </div>
       {selectedLec && <LectureDetail lec={selectedLec} isOwner={session.role === "owner"} onClose={() => setSelectedLec(null)} onDelete={handleDelete} />}
-{lectures.map(l => <LectureCard key={l.id} lec={l} isOwner={session.role === "owner"} onDelete={handleDelete} onClick={() => setSelectedLec(l)} />)}
       {lectures.length === 0 && (
         <div style={{ textAlign: "center", padding: 48, color: C.muted }}>
           <Icon name="book" size={48} color={C.border} />
           <div style={{ marginTop: 12, fontSize: 15 }}>No lectures published yet</div>
         </div>
       )}
+      {sortedDates.map(date => (
+        <div key={date} style={{ marginBottom: 24 }}>
+          <div style={{
+            display: "flex", alignItems: "center", gap: 10, marginBottom: 12,
+          }}>
+            <div style={{
+              background: C.accent, color: C.white, borderRadius: 10,
+              padding: "4px 12px", fontSize: 12, fontWeight: 700,
+            }}>
+              {new Date(date).toLocaleDateString("en-IN", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
+            </div>
+            <div style={{ flex: 1, height: 1, background: C.border }} />
+          </div>
+          {groupedLectures[date].map(l => (
+            <LectureCard key={l.id} lec={l} isOwner={session.role === "owner"} onDelete={handleDelete} onClick={() => setSelectedLec(l)} />
+          ))}
+        </div>
+      ))}
     </div>
   );
 };
@@ -871,6 +936,19 @@ export default function App() {
     });
     return unsub;
   }, []);
+  useEffect(() => {
+    const handleBackButton = () => {
+      if (page === "search") {
+        setPage("lectures");
+        window.history.pushState(null, "", window.location.href);
+      } else {
+        window.history.back();
+      }
+    };
+    window.addEventListener("popstate", handleBackButton);
+    window.history.pushState(null, "", window.location.href);
+    return () => window.removeEventListener("popstate", handleBackButton);
+  }, [page]);
   const handleLogout = () => { signOut(auth); setSession(null); setPage("lectures"); };
 
   const handleNavigate = (p) => {
