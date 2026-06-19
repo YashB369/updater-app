@@ -17,22 +17,23 @@ const auth = getAuth(firebaseApp);
 const db = getFirestore(firebaseApp);
 
 // ─── Design Tokens ───────────────────────────────────────────────────────────
+const isDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+
 const C = {
-  bg: "#F5F7FF",
-  surface: "#FFFFFF",
-  card: "#FFFFFF",
-  border: "#E0E4F0",
+  bg: isDark ? "#0F1117" : "#F5F7FF",
+  surface: isDark ? "#1A1D27" : "#FFFFFF",
+  card: isDark ? "#20243A" : "#FFFFFF",
+  border: isDark ? "#2A2F4A" : "#E0E4F0",
   accent: "#4C6EF5",
   accentDim: "#3D4F99",
   amber: "#F59F00",
   amberDim: "#7A521A",
-  text: "#1A1D27",
-  muted: "#6B7280",
+  text: isDark ? "#E8EAF6" : "#1A1D27",
+  muted: isDark ? "#7B80A0" : "#6B7280",
   danger: "#FF5252",
   success: "#4CAF7D",
   white: "#FFFFFF",
 };
-
 // ─── Utility ──────────────────────────────────────────────────────────────────
 const fmtDate = (d) => {
   if (!d) return "";
