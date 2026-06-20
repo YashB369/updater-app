@@ -16,24 +16,39 @@ const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
 const db = getFirestore(firebaseApp);
 
-// ─── Design Tokens ───────────────────────────────────────────────────────────
-const isDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-
-const C = {
-  bg: isDark ? "#0F1117" : "#F5F7FF",
-  surface: isDark ? "#1A1D27" : "#FFFFFF",
-  card: isDark ? "#20243A" : "#FFFFFF",
-  border: isDark ? "#2A2F4A" : "#E0E4F0",
-  accent: "#4C6EF5",
-  accentDim: "#3D4F99",
-  amber: "#F59F00",
+// ─── Theme Hook ───────────────────────────────────────────────────────────────
+const getColors = (dark) => ({
+  bg:       dark ? "#0F1117" : "#F5F7FF",
+  surface:  dark ? "#1A1D27" : "#FFFFFF",
+  card:     dark ? "#20243A" : "#FFFFFF",
+  border:   dark ? "#2A2F4A" : "#E0E4F0",
+  accent:   "#4C6EF5",
+  accentDim:"#3D4F99",
+  amber:    "#F59F00",
   amberDim: "#7A521A",
-  text: isDark ? "#E8EAF6" : "#1A1D27",
-  muted: isDark ? "#7B80A0" : "#6B7280",
-  danger: "#FF5252",
-  success: "#4CAF7D",
-  white: "#FFFFFF",
+  text:     dark ? "#E8EAF6" : "#1A1D27",
+  muted:    dark ? "#7B80A0" : "#6B7280",
+  danger:   "#FF5252",
+  success:  "#4CAF7D",
+  white:    "#FFFFFF",
+});
+
+const useColors = () => {
+  const [C, setC] = useState(() => {
+    const dark = window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
+    return getColors(dark);
+  });
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const handler = (e) => setC(getColors(e.matches));
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  return C;
 };
+
 // ─── Utility ──────────────────────────────────────────────────────────────────
 const fmtDate = (d) => {
   if (!d) return "";
@@ -42,7 +57,7 @@ const fmtDate = (d) => {
 };
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
-const Icon = ({ name, size = 20, color = C.text }) => {
+const Icon = ({ name, size = 20, color = "#1A1D27" }) => {
   const paths = {
     menu: "M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z",
     user: "M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z",
@@ -68,7 +83,7 @@ const Icon = ({ name, size = 20, color = C.text }) => {
 };
 
 // ─── Components ───────────────────────────────────────────────────────────────
-const Btn = ({ children, onClick, variant = "primary", disabled, full, small, icon }) => {
+  const Btn = ({ children, onClick, variant = "primary", disabled, full, small, icon, C = {} }) => {
   const bg = variant === "primary" ? C.accent : variant === "danger" ? C.danger : variant === "amber" ? C.amber : "transparent";
   const col = variant === "ghost" ? C.muted : variant === "amber" ? C.bg : C.white;
   const border = variant === "ghost" ? `1px solid ${C.border}` : "none";
@@ -87,7 +102,7 @@ const Btn = ({ children, onClick, variant = "primary", disabled, full, small, ic
   );
 };
 
-const Input = ({ label, value, onChange, type = "text", placeholder, required }) => (
+const Input = ({ label, value, onChange, type = "text", placeholder, required, C = {} }) => (
   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
     {label && <label style={{ color: C.muted, fontSize: 12, fontWeight: 600, letterSpacing: ".8px", textTransform: "uppercase" }}>{label}{required && " *"}</label>}
     <input
@@ -104,7 +119,7 @@ const Input = ({ label, value, onChange, type = "text", placeholder, required })
   </div>
 );
 
-const TextArea = ({ label, value, onChange, placeholder, rows = 4 }) => (
+const TextArea = ({ label, value, onChange, placeholder, rows = 4, C = {} }) => (
   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
     {label && <label style={{ color: C.muted, fontSize: 12, fontWeight: 600, letterSpacing: ".8px", textTransform: "uppercase" }}>{label}</label>}
     <textarea
@@ -120,7 +135,7 @@ const TextArea = ({ label, value, onChange, placeholder, rows = 4 }) => (
   </div>
 );
 
-const Toast = ({ msg, type, onClose }) => {
+const Toast = ({ msg, type, onClose, C = {} }) => {
   useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, []);
   const bg = type === "error" ? C.danger : C.success;
   return (
@@ -137,7 +152,7 @@ const Toast = ({ msg, type, onClose }) => {
 };
 
 // ─── Dropdown Menu ────────────────────────────────────────────────────────────
-const MenuDropdown = ({ session, onNavigate, onLogout }) => {
+const MenuDropdown = ({ session, onNavigate, onLogout, C }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   useEffect(() => {
@@ -180,7 +195,7 @@ const MenuDropdown = ({ session, onNavigate, onLogout }) => {
 };
 
 // ─── Header ───────────────────────────────────────────────────────────────────
-const Header = ({ session, onNavigate, onLogout }) => (
+const Header = ({ session, onNavigate, onLogout, C }) => (
   <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100 }}>
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
       <div style={{ width: 32, height: 32, borderRadius: 8, background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 16, color: C.white }}>U</div>
@@ -189,60 +204,94 @@ const Header = ({ session, onNavigate, onLogout }) => (
         {session && <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>{session.role === "owner" ? "Owner" : session.profile?.name || session.email}</div>}
       </div>
     </div>
-    {session && <MenuDropdown session={session} onNavigate={onNavigate} onLogout={onLogout} />}
+  {session && <MenuDropdown session={session} onNavigate={onNavigate} onLogout={onLogout} C={C} />}
   </div>
 );
 
 // ─── Auth Screen ──────────────────────────────────────────────────────────────
-const AuthScreen = ({ onAuth, setToast }) => {
+const AuthScreen = ({ onAuth, setToast, C }) => {
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const OWNER_EMAIL = "yashbhagat324@gmail.com";
-  const OWNER_PIN = "369752";
+const handleSubmit = async () => {
+  if (!email) { setToast({ msg: "Fill all fields", type: "error" }); return; }
+  if (mode !== "owner" && !password) { setToast({ msg: "Fill all fields", type: "error" }); return; }
+  if (mode === "owner" && !pin) { setToast({ msg: "Enter pincode", type: "error" }); return; }
+  setLoading(true);
+  try {
+    if (mode === "owner") {
+      const trimmedEmail = email.trim();
+      const trimmedPin = pin.trim();
 
-  const handleSubmit = async () => {
-    if (!email) { setToast({ msg: "Fill all fields", type: "error" }); return; }
-    if (mode !== "owner" && !password) { setToast({ msg: "Fill all fields", type: "error" }); return; }
-    if (mode === "owner" && !pin) { setToast({ msg: "Enter pincode", type: "error" }); return; }
-    setLoading(true);
-    try {
-      if (mode === "owner") {
-        const trimmedEmail = email.trim();
-        const trimmedPin = pin.trim();
-        if (trimmedEmail !== OWNER_EMAIL || trimmedPin !== OWNER_PIN) {
-          setToast({ msg: "Invalid owner credentials", type: "error" }); setLoading(false); return;
-        }
-        let cred;
+      let cred;
+      try {
+        cred = await signInWithEmailAndPassword(auth, trimmedEmail, trimmedEmail + "_owner_pass");
+      } catch {
         try {
-          cred = await signInWithEmailAndPassword(auth, trimmedEmail, trimmedEmail + "_owner_pass");
+          cred = await createUserWithEmailAndPassword(auth, trimmedEmail, trimmedEmail + "_owner_pass");
         } catch {
-          try {
-            cred = await createUserWithEmailAndPassword(auth, trimmedEmail, trimmedEmail + "_owner_pass");
-          } catch {
-            cred = await signInWithEmailAndPassword(auth, trimmedEmail, trimmedEmail + "_owner_pass");
-          }
+          cred = await signInWithEmailAndPassword(auth, trimmedEmail, trimmedEmail + "_owner_pass");
         }
-        await setDoc(doc(db, "users", cred.user.uid), { email: trimmedEmail, role: "owner", profile: { name: "Owner" } }, { merge: true });
-        onAuth({ uid: cred.user.uid, email: trimmedEmail, role: "owner", profile: { name: "Owner" } });
-      } else if (mode === "signup") {
-        const cred = await createUserWithEmailAndPassword(auth, email, password);
-        await setDoc(doc(db, "users", cred.user.uid), { email, role: "user", profile: null });
-        onAuth({ uid: cred.user.uid, email, role: "user", profile: null, isNew: true });
-      } else {
-        const cred = await signInWithEmailAndPassword(auth, email, password);
-        const userDoc = await getDoc(doc(db, "users", cred.user.uid));
-        const data = userDoc.data();
-        onAuth({ uid: cred.user.uid, email, role: data?.role || "user", profile: data?.profile || null });
       }
-    } catch (e) {
-      setToast({ msg: e.message.includes("user-not-found") || e.message.includes("wrong-password") || e.message.includes("invalid") ? "Invalid credentials" : e.message.includes("email-already") ? "Email already registered" : e.message.includes("weak") ? "Password min 6 chars" : "Error: " + e.message, type: "error" });
+
+      const configDoc = await getDoc(doc(db, "config", "owner"));
+      if (!configDoc.exists()) {
+        await signOut(auth);
+        setToast({ msg: "Owner config not found. Contact support.", type: "error" });
+        setLoading(false);
+        return;
+      }
+
+      const configData = configDoc.data();
+
+      if (trimmedEmail !== configData.email || trimmedPin !== configData.pin) {
+        await signOut(auth); // sign out immediately if credentials wrong
+        setToast({ msg: "Invalid owner credentials", type: "error" });
+        setLoading(false);
+        return;
+      }
+
+      await setDoc(doc(db, "users", cred.user.uid), {
+        email: trimmedEmail,
+        role: "owner",
+        profile: { name: "Owner" }
+      }, { merge: true });
+
+      onAuth({
+        uid: cred.user.uid,
+        email: trimmedEmail,
+        role: "owner",
+        profile: { name: "Owner" }
+      });
+
+    } else if (mode === "signup") {
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      await setDoc(doc(db, "users", cred.user.uid), { email, role: "user", profile: null });
+      onAuth({ uid: cred.user.uid, email, role: "user", profile: null, isNew: true });
+
+    } else {
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      const userDoc = await getDoc(doc(db, "users", cred.user.uid));
+      const data = userDoc.data();
+      onAuth({ uid: cred.user.uid, email, role: data?.role || "user", profile: data?.profile || null });
     }
-    setLoading(false);
-  };
+  } catch (e) {
+    setToast({
+      msg: e.message.includes("user-not-found") || e.message.includes("wrong-password") || e.message.includes("invalid")
+        ? "Invalid credentials"
+        : e.message.includes("email-already")
+        ? "Email already registered"
+        : e.message.includes("weak")
+        ? "Password min 6 chars"
+        : "Error: " + e.message,
+      type: "error"
+    });
+  }
+   setLoading(false);
+};
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
@@ -258,12 +307,12 @@ const AuthScreen = ({ onAuth, setToast }) => {
           ))}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <Input label="Email" value={email} onChange={setEmail} type="email" placeholder="you@example.com" required />
-          {mode !== "owner" && <Input label="Password" value={password} onChange={setPassword} type="password" placeholder="••••••••" required />}
-          {mode === "owner" && <Input label="6-Digit Pincode" value={pin} onChange={v => setPin(v.slice(0, 6))} type="password" placeholder="••••••" required />}
-          <Btn onClick={handleSubmit} disabled={loading} full>
-            {loading ? "Please wait…" : mode === "login" ? "Login" : mode === "signup" ? "Create Account" : "Access Owner Panel"}
-          </Btn>
+         <Input label="Email" value={email} onChange={setEmail} type="email" placeholder="you@example.com" required C={C} />
+          {mode !== "owner" && <Input label="Password" value={password} onChange={setPassword} type="password" placeholder="••••••••" required C={C} />}
+          {mode === "owner" && <Input label="6-Digit Pincode" value={pin} onChange={v => setPin(v.slice(0, 6))} type="password" placeholder="••••••" required C={C} />}
+         <Btn onClick={handleSubmit} disabled={loading} full C={C}>
+  {loading ? "Please wait…" : mode === "login" ? "Login" : mode === "signup" ? "Create Account" : "Access Owner Panel"}
+</Btn>
         </div>
         {mode === "owner" && (
           <div style={{ marginTop: 16, padding: 12, background: C.amberDim + "33", border: `1px solid ${C.amberDim}`, borderRadius: 10, fontSize: 12, color: C.amber }}>
@@ -276,7 +325,7 @@ const AuthScreen = ({ onAuth, setToast }) => {
 };
 
 // ─── Profile Setup ────────────────────────────────────────────────────────────
-const ProfileSetup = ({ session, onComplete, setToast }) => {
+const ProfileSetup = ({ session, onComplete, setToast, C }) => {
   const [name, setName] = useState("");
   const [roll, setRoll] = useState("");
   const [avatar, setAvatar] = useState(null);
@@ -290,13 +339,39 @@ const ProfileSetup = ({ session, onComplete, setToast }) => {
     r.readAsDataURL(f);
   };
 
-  const handleSubmit = async () => {
-    if (!name.trim()) { setToast({ msg: "Name is required", type: "error" }); return; }
-    if (!roll.trim() || isNaN(Number(roll))) { setToast({ msg: "Valid roll number required", type: "error" }); return; }
-    const profile = { name: name.trim(), rollNumber: roll.trim(), avatar: avatar || null };
-    await setDoc(doc(db, "users", session.uid), { profile }, { merge: true });
-    onComplete(profile);
-  };
+const handleSubmit = async () => {
+  if (!name.trim()) { setToast({ msg: "Name is required", type: "error" }); return; }
+  if (!roll.trim() || isNaN(Number(roll))) { setToast({ msg: "Valid roll number required", type: "error" }); return; }
+
+  let avatarUrl = null;
+
+  if (avatar) {
+    try {
+      const res = await fetch(avatar);
+      const blob = await res.blob();
+      const formData = new FormData();
+      formData.append("image", blob);
+      const imgRes = await fetch("https://api.imgbb.com/1/upload?key=5cf22bb839530082a818dccdc34a6012", {
+        method: "POST",
+        body: formData,
+      });
+      const imgData = await imgRes.json();
+      if (imgData.success) {
+        avatarUrl = imgData.data.url; 
+      } else {
+        setToast({ msg: "Failed to upload avatar", type: "error" });
+        return;
+      }
+    } catch (e) {
+      setToast({ msg: "Avatar upload error: " + e.message, type: "error" });
+      return;
+    }
+  }
+
+  const profile = { name: name.trim(), rollNumber: roll.trim(), avatar: avatarUrl };
+  await setDoc(doc(db, "users", session.uid), { profile }, { merge: true });
+  onComplete(profile);
+};
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
@@ -313,33 +388,18 @@ const ProfileSetup = ({ session, onComplete, setToast }) => {
           <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFile} />
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <Input label="Full Name" value={name} onChange={setName} placeholder="Enter Your Name" required />
-          <Input label="Roll Number" value={roll} onChange={setRoll} type="number" placeholder="2024001" required />
-          <Btn onClick={handleSubmit} full>Save & Continue</Btn>
+          <Input label="Full Name" value={name} onChange={setName} placeholder="Enter Your Name" required C={C} />
+          <Input label="Roll Number" value={roll} onChange={setRoll} type="number" placeholder="2024001" required C={C} />
+          <Btn onClick={handleSubmit} full C={C}>Save & Continue</Btn>
         </div>
       </div>
     </div>
   );
 };
-//Lecture Detail//
-const LectureDetail = ({ lec, isOwner, onClose, onDelete }) => {
-  const isImage = lec.fileType?.startsWith("image/");
-  const [viewImg, setViewImg] = useState(null);
 
-  useEffect(() => {
-    const handleBack = () => {
-      if (viewImg) {
-        setViewImg(null);
-        window.history.pushState(null, "", window.location.href);
-      } else {
-        onClose();
-        window.history.pushState(null, "", window.location.href);
-      }
-    };
-    window.addEventListener("popstate", handleBack);
-    window.history.pushState(null, "", window.location.href);
-    return () => window.removeEventListener("popstate", handleBack);
-  }, [viewImg]);
+//Lecture Detail//
+const LectureDetail = ({ lec, isOwner, onClose, onDelete, viewImg, onImgOpen, onImgClose, C }) => {
+const isImage = lec.fileType?.startsWith("image/");
 
   const handleDownload = async () => {
     if (!lec.fileUrl) return;
@@ -362,8 +422,8 @@ const LectureDetail = ({ lec, isOwner, onClose, onDelete }) => {
   return (
     <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: C.bg, zIndex: 500, overflowY: "auto", maxWidth: 768, margin: "0 auto" }}>
       {viewImg && (
-        <div onClick={() => setViewImg(null)} style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,.95)", zIndex: 600, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
-          <button onClick={() => setViewImg(null)} style={{ position: "absolute", top: 16, left: 16, background: "none", border: "none", color: "#fff", fontSize: 16, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>← Back</button>
+        <div onClick={() => onImgClose()} style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,.95)", zIndex: 600, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
+          <button onClick={() => onImgClose()} style={{ position: "absolute", top: 16, left: 16, background: "none", border: "none", color: "#fff", fontSize: 16, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>← Back</button>
           <img src={viewImg} alt="full view" style={{ maxWidth: "100%", maxHeight: "90vh", objectFit: "contain", borderRadius: 8 }} />
         </div>
       )}
@@ -402,7 +462,7 @@ const LectureDetail = ({ lec, isOwner, onClose, onDelete }) => {
                       <div style={{ fontSize: 12, color: C.muted, wordBreak: "break-all" }}>{f.name}</div>
                       <div style={{ display: "flex", gap: 8 }}>
                         {isImg && (
-                          <button onClick={(e) => { e.stopPropagation(); setViewImg(f.url); window.history.pushState(null, "", window.location.href); }} style={{
+                          <button onClick={(e) => { e.stopPropagation();  onImgOpen(f.url); window.history.pushState(null, "", window.location.href); }} style={{
                             flex: 1, padding: "10px", background: C.surface, border: `1px solid ${C.border}`,
                             borderRadius: 10, cursor: "pointer", fontSize: 13, fontWeight: 600,
                             color: C.accent, fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 6
@@ -437,10 +497,10 @@ const LectureDetail = ({ lec, isOwner, onClose, onDelete }) => {
               })
             ) : (
               <div>
-                {isImage && <img src={lec.fileUrl} alt="attachment" style={{ width: "100%", borderRadius: 10, marginBottom: 12, objectFit: "cover" }} />}
+                  {isImage && <img src={lec.fileUrl} alt="attachment" style={{ width: "100%", borderRadius: 10, marginBottom: 12, objectFit: "cover" }} />}
                 <div style={{ display: "flex", gap: 10 }}>
-                  {isImage && <Btn onClick={() => { setViewImg(lec.fileUrl); window.history.pushState(null, "", window.location.href); }} variant="ghost" small icon="image">View Full</Btn>}
-                  {!isOwner && <Btn onClick={handleDownload} variant="amber" small icon="download">Download</Btn>}
+                  {isImage && <Btn onClick={() => { onImgOpen(lec.fileUrl); window.history.pushState(null, "", window.location.href); }} variant="ghost" small icon="image" C={C}>View Full</Btn>}
+                  {!isOwner && <Btn onClick={handleDownload} variant="amber" small icon="download" C={C}>Download</Btn>}
                 </div>
               </div>
             )}
@@ -451,7 +511,7 @@ const LectureDetail = ({ lec, isOwner, onClose, onDelete }) => {
   );
 };
 // ─── Lecture Card ─────────────────────────────────────────────────────────────
-const LectureCard = ({ lec, isOwner, onDelete, onClick }) => {
+const LectureCard = ({ lec, isOwner, onDelete, onClick, C }) => {
   const isImage = lec.fileType?.startsWith("image/");
   return (
     <div onClick={onClick} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, overflow: "hidden", marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,.06)", cursor: "pointer", transition: "transform .15s, box-shadow .15s" }}
@@ -487,7 +547,7 @@ const LectureCard = ({ lec, isOwner, onDelete, onClick }) => {
 };
 
 // ─── Notice Card ──────────────────────────────────────────────────────────────
-const NoticeCard = ({ notice, isOwner, onDelete }) => (
+const NoticeCard = ({ notice, isOwner, onDelete, C }) => (
   <div style={{ background: C.card, border: `1px solid ${C.border}`, borderLeft: `4px solid ${C.amber}`, borderRadius: 14, padding: "14px 16px", marginBottom: 12, boxShadow: "0 1px 4px rgba(0,0,0,.06)" }}>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
       <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{notice.subject}</div>
@@ -501,23 +561,23 @@ const NoticeCard = ({ notice, isOwner, onDelete }) => (
 );
 
 // ─── Lectures Screen ──────────────────────────────────────────────────────────
-const LecturesScreen = ({ session, setToast }) => {
+const LecturesScreen = ({ session, setToast, selectedLec, setSelectedLec, openImg, setOpenImg, C }) => {
   const [lectures, setLectures] = useState([]);
-  const groupedLectures = lectures.reduce((groups, lec) => {
-    const date = lec.date || "Unknown";
-    if (!groups[date]) groups[date] = [];
-    groups[date].push(lec);
-    return groups;
-  }, {});
-  const sortedDates = Object.keys(groupedLectures).sort((a, b) => new Date(b) - new Date(a));
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("");
   const [desc, setDesc] = useState("");
   const [files, setFiles] = useState([]);
-  const [selectedLec, setSelectedLec] = useState(null);
   const [loading, setLoading] = useState(false);
   const fileRef = useRef(null);
+  
+  const groupedLectures = lectures.reduce((groups, lec) => {
+  const date = lec.date || "Unknown";
+  if (!groups[date]) groups[date] = [];
+  groups[date].push(lec);
+  return groups;
+}, {});
+  const sortedDates = Object.keys(groupedLectures).sort((a, b) => new Date(b) - new Date(a));
 
   useEffect(() => {
     const q = queryFirestore(collection(db, "lectures"), orderBy("createdAt", "desc"));
@@ -525,46 +585,61 @@ const LecturesScreen = ({ session, setToast }) => {
     return unsub;
   }, []);
 
-  const handleFile = (e) => {
-    const newFiles = Array.from(e.target.files);
-    newFiles.forEach(f => {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setFiles(prev => [...prev, { url: ev.target.result, name: f.name, type: f.type, raw: f }]);
-      };
-      reader.readAsDataURL(f);
+ const handleFile = (e) => {
+  const newFiles = Array.from(e.target.files);
+  newFiles.forEach(f => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setFiles(prev => [...prev, { url: ev.target.result, name: f.name, type: f.type, raw: f }]);
+    };
+    reader.readAsDataURL(f);
+  });
+};
+
+const handleSend = async () => {
+  if (!title || !subject || !desc) { setToast({ msg: "Fill all required fields", type: "error" }); return; }
+  setLoading(true);
+  try {    
+let uploadedFiles = [];
+for (const file of files) {
+  if (file.type.startsWith("image/")) {
+    const formData = new FormData();
+    formData.append("image", file.raw);
+    const res = await fetch("https://api.imgbb.com/1/upload?key=5cf22bb839530082a818dccdc34a6012", {
+      method: "POST",
+      body: formData,
     });
-  };
-
-  const handleSend = async () => {
-    if (!title || !subject || !desc) { setToast({ msg: "Fill all required fields", type: "error" }); return; }
-    setLoading(true);
+    const data = await res.json();
+    if (data.success) {
+      uploadedFiles.push({ url: data.data.url, name: file.name, type: file.type });
+    } else {
+      setToast({ msg: `Failed to upload ${file.name}`, type: "error" });
+      setLoading(false);
+      return;
+    }
+  } else {
+    const formData = new FormData();
+    formData.append("file", file.raw);
     try {
-      let fileUrl = null;
-      let fileName = null;
-      let fileType = null;
-
-     let uploadedFiles = [];
-      for (const file of files) {
-        if (file.type.startsWith("image/")) {
-          const formData = new FormData();
-          formData.append("image", file.raw);
-          const res = await fetch("https://api.imgbb.com/1/upload?key=5cf22bb839530082a818dccdc34a6012", {
-            method: "POST",
-            body: formData,
-          });
-          const data = await res.json();
-          if (data.success) {
-            uploadedFiles.push({ url: data.data.url, name: file.name, type: file.type });
-          } else {
-            setToast({ msg: `Failed to upload ${file.name}`, type: "error" });
-            setLoading(false);
-            return;
-          }
-        } else {
-          uploadedFiles.push({ url: file.url, name: file.name, type: file.type });
-        }
+      const res = await fetch("https://file.io/?expires=1y", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success) {
+        uploadedFiles.push({ url: data.link, name: file.name, type: file.type });
+      } else {
+        setToast({ msg: `Failed to upload ${file.name}`, type: "error" });
+        setLoading(false);
+        return;
       }
+    } catch (e) {
+      setToast({ msg: `Upload error: ${e.message}`, type: "error" });
+      setLoading(false);
+      return;
+    }
+  }
+}
       
       await addDoc(collection(db, "lectures"), {
         date, title, subject, description: desc,
@@ -590,10 +665,10 @@ const LecturesScreen = ({ session, setToast }) => {
             <Icon name="plus" size={18} color={C.accent} /> New Lecture
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <Input label="Date *" value={date} onChange={setDate} type="date" />
-            <Input label="Title *" value={title} onChange={setTitle} placeholder="Introduction to React" />
-            <Input label="Subject *" value={subject} onChange={setSubject} placeholder="Web Development" />
-            <TextArea label="Description *" value={desc} onChange={setDesc} placeholder="Topics covered today…" />
+            <Input label="Date *" value={date} onChange={setDate} type="date" C={C} />
+            <Input label="Title *" value={title} onChange={setTitle} placeholder="Introduction to React" C={C} />
+            <Input label="Subject *" value={subject} onChange={setSubject} placeholder="Web Development" C={C} />
+            <TextArea label="Description *" value={desc} onChange={setDesc} C={C} />
             <div>
               <label style={{ color: C.muted, fontSize: 12, fontWeight: 600, letterSpacing: ".8px", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Attachment (optional)</label>
             {files.length > 0 && (
@@ -617,14 +692,25 @@ const LecturesScreen = ({ session, setToast }) => {
               <input ref={fileRef} type="file" accept="image/*,.pdf" multiple style={{ display: "none" }} onChange={handleFile} />
           
             </div>
-            <Btn onClick={handleSend} disabled={loading} full icon="send">{loading ? "Publishing…" : "Send Lecture"}</Btn>
+            <Btn onClick={handleSend} disabled={loading} full icon="send" C={C}>Send</Btn>
           </div>
         </div>
       )}
     <div style={{ fontWeight: 700, fontSize: 16, color: C.text, marginBottom: 14 }}>
         {lectures.length > 0 ? `${lectures.length} Lecture${lectures.length > 1 ? "s" : ""}` : "No lectures yet"}
       </div>
-      {selectedLec && <LectureDetail lec={selectedLec} isOwner={session.role === "owner"} onClose={() => setSelectedLec(null)} onDelete={handleDelete} />}
+    
+  {selectedLec && (
+  <LectureDetail
+    lec={selectedLec}
+    isOwner={session.role === "owner"}
+    onClose={() => setSelectedLec(null)}
+    onDelete={handleDelete}
+    viewImg={openImg}       
+    onImgOpen={setOpenImg}  
+    onImgClose={() => setOpenImg(null)}
+  />
+)}
       {lectures.length === 0 && (
         <div style={{ textAlign: "center", padding: 48, color: C.muted }}>
           <Icon name="book" size={48} color={C.border} />
@@ -645,7 +731,7 @@ const LecturesScreen = ({ session, setToast }) => {
             <div style={{ flex: 1, height: 1, background: C.border }} />
           </div>
           {groupedLectures[date].map(l => (
-            <LectureCard key={l.id} lec={l} isOwner={session.role === "owner"} onDelete={handleDelete} onClick={() => setSelectedLec(l)} />
+           <LectureCard key={l.id} lec={l} isOwner={session.role === "owner"} onDelete={handleDelete} onClick={() => setSelectedLec(l)} C={C} />
           ))}
         </div>
       ))}
@@ -654,7 +740,7 @@ const LecturesScreen = ({ session, setToast }) => {
 };
 
 // ─── Notices Screen ───────────────────────────────────────────────────────────
-const NoticesScreen = ({ session, setToast }) => {
+const NoticesScreen = ({ session, setToast, C }) => {
   const [notices, setNotices] = useState([]);
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [subject, setSubject] = useState("");
@@ -691,10 +777,12 @@ const NoticesScreen = ({ session, setToast }) => {
             <Icon name="plus" size={18} color={C.amber} /> New Notice
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <Input label="Date *" value={date} onChange={setDate} type="date" />
-            <Input label="Subject *" value={subject} onChange={setSubject} placeholder="Exam schedule update" />
-            <TextArea label="Description *" value={desc} onChange={setDesc} placeholder="Write the notice here…" />
-            <Btn onClick={handlePublish} disabled={loading} full variant="amber" icon="send">{loading ? "Publishing…" : "Publish Notice"}</Btn>
+            <Input label="Date *" value={date} onChange={setDate} type="date" C={C} />
+            <Input label="Subject *" value={subject} onChange={setSubject} placeholder="Exam schedule update" C={C} />
+            <TextArea label="Description *" value={desc} onChange={setDesc} placeholder="Write the notice here…" C={C} />
+           <Btn onClick={handlePublish} disabled={loading} full variant="amber" icon="send" C={C}>
+  {loading ? "Publishing…" : "Publish Notice"}
+</Btn>
           </div>
         </div>
       )}
@@ -718,7 +806,7 @@ const NoticesScreen = ({ session, setToast }) => {
               <div style={{ flex: 1, height: 1, background: C.border }} />
             </div>
             {groupedNotices[date].map(n => (
-              <NoticeCard key={n.id} notice={n} isOwner={session.role === "owner"} onDelete={handleDelete} />
+             <NoticeCard key={n.id} notice={n} isOwner={session.role === "owner"} onDelete={handleDelete} C={C} />
             ))}
           </div>
         ));
@@ -734,21 +822,34 @@ const NoticesScreen = ({ session, setToast }) => {
 };
 
 // ─── Profile Screen ───────────────────────────────────────────────────────────
-const ProfileScreen = ({ session, onUpdateSession }) => {
+const ProfileScreen = ({ session, onUpdateSession, C }) => {
   const p = session.profile;
   const fileRef = useRef(null);
 
-  const handleAvatarChange = async (e) => {
-    const f = e.target.files[0];
-    if (!f) return;
-    const r = new FileReader();
-    r.onload = async (ev) => {
-      const updated = { ...session, profile: { ...session.profile, avatar: ev.target.result } };
-      await setDoc(doc(db, "users", session.uid), { profile: updated.profile }, { merge: true });
-      onUpdateSession(updated);
-    };
-    r.readAsDataURL(f);
-  };
+const handleAvatarChange = async (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+
+  try {
+    const formData = new FormData();
+    formData.append("image", f);
+    const res = await fetch("https://api.imgbb.com/1/upload?key=5cf22bb839530082a818dccdc34a6012", {
+      method: "POST",
+      body: formData,
+    });
+    const data = await res.json();
+    if (data.success) {
+      const avatarUrl = data.data.url;
+      const updatedProfile = { ...session.profile, avatar: avatarUrl };
+      await setDoc(doc(db, "users", session.uid), { profile: updatedProfile }, { merge: true });
+      onUpdateSession({ ...session, profile: updatedProfile });
+    } else {
+      alert("Failed to upload avatar. Please try again.");
+    }
+  } catch (e) {
+    alert("Avatar upload error: " + e.message);
+  }
+};
 
   return (
     <div style={{ padding: "32px 20px", maxWidth: 480, margin: "0 auto" }}>
@@ -779,7 +880,7 @@ const ProfileScreen = ({ session, onUpdateSession }) => {
 };
 
 // ─── About Screen ─────────────────────────────────────────────────────────────
-const AboutScreen = () => (
+const AboutScreen = ({ C }) => (
   <div style={{ padding: "32px 20px", maxWidth: 480, margin: "0 auto" }}>
     <div style={{ background: C.card, borderRadius: 20, padding: 24, border: `1px solid ${C.border}` }}>
       <div style={{ textAlign: "center", marginBottom: 24 }}>
@@ -803,10 +904,20 @@ const AboutScreen = () => (
 );
 
 // ─── Search Screen ────────────────────────────────────────────────────────────
-const SearchScreen = ({ session }) => {
-  const [query, setQuery] = useState("");
+const SearchScreen = ({ session, setToast, selectedLec, setSelectedLec, openImg, setOpenImg, C }) => {
   const [lectures, setLectures] = useState([]);
-  const [selectedLec, setSelectedLec] = useState(null);
+  const [query, setQuery] = useState("");
+ 
+
+  const handleDelete = async (id) => {
+    try {
+      await deleteDoc(doc(db, "lectures", id));
+      setSelectedLec(null); // close the detail panel after delete
+      setToast({ msg: "Lecture deleted", type: "success" });
+    } catch (e) {
+      setToast({ msg: "Error deleting lecture", type: "error" });
+    }
+  };
 
   useEffect(() => {
     const q = queryFirestore(collection(db, "lectures"), orderBy("createdAt", "desc"));
@@ -862,13 +973,23 @@ const SearchScreen = ({ session }) => {
         </div>
       )}
 
-      {selectedLec && <LectureDetail lec={selectedLec} isOwner={session.role === "owner"} onClose={() => setSelectedLec(null)} onDelete={() => {}} />}
-      {filtered.map(l => <LectureCard key={l.id} lec={l} isOwner={false} onDelete={() => {}} onClick={() => setSelectedLec(l)} />)}
+      {selectedLec && (
+  <LectureDetail
+    lec={selectedLec}
+    isOwner={session.role === "owner"}
+    onClose={() => setSelectedLec(null)}
+    onDelete={handleDelete}
+    viewImg={openImg}
+    onImgOpen={setOpenImg}
+    onImgClose={() => setOpenImg(null)}
+  />
+)}
+      {filtered.map(l => <LectureCard key={l.id} lec={l} isOwner={false} onDelete={() => {}} onClick={() => setSelectedLec(l)} C={C} />)}
     </div>
   );
 };
 // ─── Bottom Nav ───────────────────────────────────────────────────────────────
-const BottomNav = ({ page, onNavigate, newLectures, newNotices }) => {
+const BottomNav = ({ page, onNavigate, newLectures, newNotices, C }) => {
   const tabs = [
     { id: "lectures", icon: "book", label: "Lectures", badge: newLectures },
     { id: "notices", icon: "bell", label: "Notices", badge: newNotices },
@@ -898,6 +1019,7 @@ const BottomNav = ({ page, onNavigate, newLectures, newNotices }) => {
 
 // ─── Root App ─────────────────────────────────────────────────────────────────
 export default function App() {
+  const C = useColors();
   const [session, setSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [page, setPage] = useState("lectures");
@@ -907,7 +1029,9 @@ export default function App() {
   const [newNotices, setNewNotices] = useState(false);
   const lastSeenLecture = useRef(localStorage.getItem("lastSeenLecture") || null);
   const lastSeenNotice = useRef(localStorage.getItem("lastSeenNotice") || null);
-
+  const [openImg, setOpenImg] = useState(null);
+  const [selectedLec, setSelectedLec] = useState(null);
+  
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -937,53 +1061,85 @@ export default function App() {
     setSession(prev => ({ ...prev, profile }));
     setNeedsProfile(false);
   };
-  useEffect(() => {
-    const q = queryFirestore(collection(db, "lectures"), orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(q, snap => {
-      if (snap.docs.length > 0) {
-        const latest = snap.docs[0].id;
-        if (lastSeenLecture.current !== latest) setNewLectures(true);
-      }
-    });
-    return unsub;
-  }, []);
 
   useEffect(() => {
-    const q = queryFirestore(collection(db, "notices"), orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(q, snap => {
-      if (snap.docs.length > 0) {
-        const latest = snap.docs[0].id;
-        if (lastSeenNotice.current !== latest) setNewNotices(true);
+  const q = queryFirestore(collection(db, "lectures"), orderBy("createdAt", "desc"));
+  const unsub = onSnapshot(q, snap => {
+    if (snap.docs.length > 0) {
+      const latest = snap.docs[0].id;
+      if (lastSeenLecture.current === null) {
+        lastSeenLecture.current = latest;
+        localStorage.setItem("lastSeenLecture", latest);
+      } else if (lastSeenLecture.current !== latest) {
+        setNewLectures(true);
       }
-    });
-    return unsub;
-  }, []);
-  useEffect(() => {
-    const handleBackButton = () => {
-      if (page === "search") {
-        setPage("lectures");
-        window.history.pushState(null, "", window.location.href);
-      } else {
-        window.history.back();
+    }
+  });
+  return unsub;
+}, []);
+
+useEffect(() => {
+  const q = queryFirestore(collection(db, "notices"), orderBy("createdAt", "desc"));
+  const unsub = onSnapshot(q, snap => {
+    if (snap.docs.length > 0) {
+      const latest = snap.docs[0].id;
+      if (lastSeenNotice.current === null) {
+        lastSeenNotice.current = latest;
+        localStorage.setItem("lastSeenNotice", latest);
+      } else if (lastSeenNotice.current !== latest) {
+        setNewNotices(true);
       }
-    };
-    window.addEventListener("popstate", handleBackButton);
+    }
+  });
+  return unsub;
+}, []);
+ 
+  
+useEffect(() => {
+  window.history.pushState(null, "", window.location.href);
+
+  const handleBackButton = () => {
+    if (openImg) {
+      setOpenImg(null);
+    } else if (selectedLec) {    
+      setSelectedLec(null);   
+    } else if (page === "search") {
+      setPage("lectures");
+    }
     window.history.pushState(null, "", window.location.href);
-    return () => window.removeEventListener("popstate", handleBackButton);
-  }, [page]);
-  const handleLogout = () => { signOut(auth); setSession(null); setPage("lectures"); };
-
-  const handleNavigate = (p) => {
-    if (p === "lectures") {
-      setNewLectures(false);
-      if (lastSeenLecture.current) localStorage.setItem("lastSeenLecture", lastSeenLecture.current);
-    }
-    if (p === "notices") {
-      setNewNotices(false);
-      if (lastSeenNotice.current) localStorage.setItem("lastSeenNotice", lastSeenNotice.current);
-    }
-    setPage(p);
   };
+
+  window.addEventListener("popstate", handleBackButton);
+  return () => window.removeEventListener("popstate", handleBackButton);
+}, [page, selectedLec, openImg]);
+ 
+const handleLogout = async () => {
+  try {
+    await signOut(auth);
+  } catch (e) {
+    setToast({ msg: "Logout failed. Try again.", type: "error" });
+    return;
+  }
+  setSession(null);
+  setPage("lectures");
+};
+
+const handleNavigate = (p) => {
+  if (p === "lectures") {
+    setNewLectures(false);
+   
+    if (lastSeenLecture.current) {
+      localStorage.setItem("lastSeenLecture", lastSeenLecture.current);
+    }
+  }
+  if (p === "notices") {
+    setNewNotices(false);
+    if (lastSeenNotice.current) {
+      localStorage.setItem("lastSeenNotice", lastSeenNotice.current);
+    }
+  }
+  setPage(p);
+};
 
   if (authLoading) return (
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -996,22 +1152,32 @@ export default function App() {
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: C.text, maxWidth: 768, margin: "0 auto", position: "relative" }}>
-      {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
+      {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} C={C} />}
       {!session ? (
-        <AuthScreen onAuth={handleAuth} setToast={setToast} />
+      <AuthScreen onAuth={handleAuth} setToast={setToast} C={C} />
       ) : needsProfile ? (
-        <ProfileSetup session={session} onComplete={handleProfileComplete} setToast={setToast} />
+       <ProfileSetup session={session} onComplete={handleProfileComplete} setToast={setToast} C={C} />
       ) : (
         <>
-          <Header session={session} onNavigate={handleNavigate} onLogout={handleLogout} />
-          <div style={{ paddingBottom: 80 }}>
-            {page === "lectures" && <LecturesScreen session={session} setToast={setToast} />}
-            {page === "notices" && <NoticesScreen session={session} setToast={setToast} />}
-            {page === "search" && <SearchScreen session={session} />}
-            {page === "profile" && <ProfileScreen session={session} onUpdateSession={setSession} />}
-            {page === "about" && <AboutScreen />}
-          </div>
-          <BottomNav page={page} onNavigate={handleNavigate} newLectures={newLectures} newNotices={newNotices} />
+       <Header session={session} onNavigate={handleNavigate} onLogout={handleLogout} C={C} />
+
+{page === "lectures" && (
+  <LecturesScreen session={session} setToast={setToast} C={C}
+    selectedLec={selectedLec} setSelectedLec={setSelectedLec}
+    openImg={openImg} setOpenImg={setOpenImg}
+  />
+)}
+{page === "notices" && <NoticesScreen session={session} setToast={setToast} C={C} />}
+{page === "search" && (
+  <SearchScreen session={session} setToast={setToast} C={C}
+    selectedLec={selectedLec} setSelectedLec={setSelectedLec}
+    openImg={openImg} setOpenImg={setOpenImg}
+  />
+)}
+{page === "profile" && <ProfileScreen session={session} onUpdateSession={setSession} C={C} />}
+{page === "about" && <AboutScreen C={C} />}
+
+<BottomNav page={page} onNavigate={handleNavigate} newLectures={newLectures} newNotices={newNotices} C={C} />
         </>
       )}
     </div>
