@@ -701,7 +701,28 @@ const NoticesScreen = ({ session, setToast }) => {
       <div style={{ fontWeight: 700, fontSize: 16, color: C.text, marginBottom: 14 }}>
         {notices.length > 0 ? `${notices.length} Notice${notices.length > 1 ? "s" : ""}` : "No notices"}
       </div>
-      {notices.map(n => <NoticeCard key={n.id} notice={n} isOwner={session.role === "owner"} onDelete={handleDelete} />)}
+     {(() => {
+        const groupedNotices = notices.reduce((groups, n) => {
+          const date = n.date || "Unknown";
+          if (!groups[date]) groups[date] = [];
+          groups[date].push(n);
+          return groups;
+        }, {});
+        const sortedDates = Object.keys(groupedNotices).sort((a, b) => new Date(b) - new Date(a));
+        return sortedDates.map(date => (
+          <div key={date} style={{ marginBottom: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+              <div style={{ background: C.amber, color: C.bg, borderRadius: 10, padding: "4px 12px", fontSize: 12, fontWeight: 700 }}>
+                {new Date(date).toLocaleDateString("en-IN", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
+              </div>
+              <div style={{ flex: 1, height: 1, background: C.border }} />
+            </div>
+            {groupedNotices[date].map(n => (
+              <NoticeCard key={n.id} notice={n} isOwner={session.role === "owner"} onDelete={handleDelete} />
+            ))}
+          </div>
+        ));
+      })()}
       {notices.length === 0 && (
         <div style={{ textAlign: "center", padding: 48, color: C.muted }}>
           <Icon name="bell" size={48} color={C.border} />
