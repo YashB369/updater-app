@@ -433,19 +433,7 @@ const LectureDetail = ({ lec, isOwner, onClose, onDelete }) => {
                 const isImg = f.type?.startsWith("image/");
                 return (
                   <div key={i} style={{ marginBottom: 12 }}>
-                    {isImg && (
-                      <div style={{ position: "relative", width: "100%", borderRadius: 10, marginBottom: 8, background: C.border, minHeight: 200 }}>
-                        <img
-                          src={f.url}
-                          alt={f.name}
-                          onLoad={e => { e.target.style.opacity = 1; e.target.previousSibling.style.display = "none"; }}
-                          style={{ width: "100%", borderRadius: 10, objectFit: "cover", opacity: 0, transition: "opacity .3s", display: "block" }}
-                        />
-                        <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 10 }}>
-                          <div style={{ width: 32, height: 32, borderRadius: "50%", border: `3px solid ${C.accent}`, borderTopColor: "transparent", animation: "spin .8s linear infinite" }} />
-                        </div>
-                      </div>
-                    )}
+                    {isImg && <img src={f.url} alt={f.name} style={{ width: "100%", borderRadius: 10, marginBottom: 8, objectFit: "cover" }} />}
                     <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
                       <div style={{ fontSize: 12, color: C.muted, wordBreak: "break-all" }}>{f.name}</div>
                       <div style={{ display: "flex", gap: 8 }}>
@@ -544,7 +532,7 @@ const NoticeCard = ({ notice, isOwner, onDelete }) => (
         {isOwner && <button onClick={() => { if(window.confirm("Delete this notice?")) onDelete(notice.id); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}><Icon name="close" size={16} color={C.danger} /></button>}
       </div>
     </div>
-    <div style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.6 }}>{notice.description}</div>
+    <div style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{notice.description}</div>
   </div>
 );
 
