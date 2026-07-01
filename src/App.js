@@ -1045,7 +1045,8 @@ export default function App() {
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: C.text, maxWidth: 768, margin: "0 auto", position: "relative" }}>
+    return (
+    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: C.text, maxWidth: 768, margin: "0 auto", position: "relative", WebkitTapHighlightColor: "transparent", userSelect: "none", WebkitUserSelect: "none" }}>
       {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
       {!session ? (
         <AuthScreen onAuth={handleAuth} setToast={setToast} />
