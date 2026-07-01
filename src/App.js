@@ -361,6 +361,15 @@ const ProfileSetup = ({ session, onComplete, setToast }) => {
 const LectureDetail = ({ lec, isOwner, onClose, onDelete }) => {
   const isImage = lec.fileType?.startsWith("image/");
   const [viewImg, setViewImg] = useState(null);
+  useEffect(() => {
+    const viewport = document.querySelector("meta[name=viewport]");
+    if (viewImg) {
+      viewport?.setAttribute("content", "width=device-width, initial-scale=1");
+    } else {
+      viewport?.setAttribute("content", "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no");
+    }
+    return () => viewport?.setAttribute("content", "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no");
+  }, [viewImg]);
 
   useEffect(() => {
     const handleBack = () => {
@@ -398,9 +407,14 @@ const LectureDetail = ({ lec, isOwner, onClose, onDelete }) => {
   return (
     <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: C.bg, zIndex: 500, overflowY: "auto", maxWidth: 768, margin: "0 auto" }}>
       {viewImg && (
-        <div onClick={() => setViewImg(null)} style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,.95)", zIndex: 600, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
-          <button onClick={() => setViewImg(null)} style={{ position: "absolute", top: 16, left: 16, background: "none", border: "none", color: "#fff", fontSize: 16, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>← Back</button>
-          <img src={viewImg} alt="full view" style={{ maxWidth: "100%", maxHeight: "90vh", objectFit: "contain", borderRadius: 8 }} />
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,.95)", zIndex: 600, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
+          <button onClick={() => setViewImg(null)} style={{ position: "absolute", top: 16, left: 16, background: "none", border: "none", color: "#fff", fontSize: 16, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", zIndex: 10 }}>← Back</button>
+          <img
+            src={viewImg}
+            alt="full view"
+            onClick={e => e.stopPropagation()}
+            style={{ maxWidth: "100%", maxHeight: "90vh", objectFit: "contain", borderRadius: 8 }}
+          />
         </div>
       )}
       <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: "14px 20px", display: "flex", alignItems: "center", gap: 12, position: "sticky", top: 0, zIndex: 10 }}>
