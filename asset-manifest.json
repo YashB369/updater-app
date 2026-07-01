@@ -1,10 +1,10 @@
 {
   "files": {
-    "main.js": "/updater-app/static/js/main.f22c30ba.js",
+    "main.js": "/updater-app/static/js/main.dc7468a3.js",
     "index.html": "/updater-app/index.html",
-    "main.f22c30ba.js.map": "/updater-app/static/js/main.f22c30ba.js.map"
+    "main.dc7468a3.js.map": "/updater-app/static/js/main.dc7468a3.js.map"
   },
   "entrypoints": [
-    "static/js/main.f22c30ba.js"
+    "static/js/main.dc7468a3.js"
   ]
 }
